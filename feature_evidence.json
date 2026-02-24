@@ -2,11 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-failed-to-create-session-please-try-again-error-on-the-new-session-page-the-createsession-backend-call-is-failing-audit-the-motoko-actor-s-createsession-function-and-the-frontend-usequeries-ts-hook-that-calls-it-to-identify-and-resolve-the-mismatch-e-g-argument-shape-principal-handling-or-stable-variable-initialization-the-new-session-form-must-successfully-create-a-session-and-navigate-to-the-chat-page-without-errors",
-      "featureTitle": "Fix the 'Failed to create session. Please try again.' error on the New Session page. The createSession backend call is failing — audit the Motoko actor's createSession function and the frontend useQueries.ts hook that calls it to identify and resolve the mismatch (e.g. argument shape, principal handling, or stable variable initialization). The New Session form must successfully create a session and navigate to the Chat page without errors.",
+      "featureId": "feature-fix-the-landing-page-project-type-flow-so-that-when-a-user-selects-landing-page-in-newsessionpage-and-sends-a-message-in-chatpage-the-llmservice-returns-a-complete-working-landing-page-scaffold-html-structure-hero-section-features-cta-and-styles-instead-of-failing-silently-or-producing-no-output",
+      "featureTitle": "Fix the landing page project type flow so that when a user selects 'Landing Page' in NewSessionPage and sends a message in ChatPage, the llmService returns a complete, working landing page scaffold (HTML structure, hero section, features, CTA, and styles) instead of failing silently or producing no output.",
       "files": [
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/pages/NewSessionPage.tsx"
+        "frontend/src/pages/ChatPage.tsx",
+        "frontend/src/services/llmService.ts"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -17,13 +17,13 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-11"
+        "REQ-1"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-remove-all-localhost-url-references-from-the-pre-built-template-responses-in-frontend-src-services-llmservice-ts-template-responses-must-not-instruct-users-to-open-localhost-5173-or-any-localhost-127-0-0-1-url-replace-any-such-instructions-with-a-note-that-the-project-is-ready-to-use-and-the-user-can-follow-the-getting-started-steps-in-their-local-environment-without-mentioning-a-specific-localhost-address",
-      "featureTitle": "Remove all localhost URL references from the pre-built template responses in frontend/src/services/llmService.ts. Template responses must not instruct users to open localhost:5173 or any localhost/127.0.0.1 URL. Replace any such instructions with a note that the project is ready to use and the user can follow the Getting Started steps in their local environment, without mentioning a specific localhost address.",
+      "featureId": "feature-ensure-the-landing-page-template-in-llmservice-ts-generates-a-visually-polished-scaffold-that-matches-noventra-ai-s-dark-theme-oklch-color-tokens-glassmorphism-space-grotesk-font-and-includes-sections-hero-features-how-it-works-and-cta-with-appropriate-copy-about-noventra-ai-building-any-project-app",
+      "featureTitle": "Ensure the landing page template in llmService.ts generates a visually polished scaffold that matches Noventra.Ai's dark theme (OKLCH color tokens, glassmorphism, Space Grotesk font) and includes sections: Hero, Features, How It Works, and CTA with appropriate copy about Noventra.Ai building any project app.",
       "files": [
         "frontend/src/services/llmService.ts"
       ],
@@ -36,7 +36,7 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-12"
+        "REQ-2"
       ],
       "confidence": "high"
     }

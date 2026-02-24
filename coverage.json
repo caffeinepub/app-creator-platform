@@ -1,31 +1,31 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-24T21:00:46.050Z",
+  "generatedAt": "2026-02-24T21:35:53.191Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 3,
+    "total": 2,
     "implemented": 2,
     "items": [
       {
-        "id": "REQ-11",
-        "summary": "Fix the 'Failed to create session. Please try again.' error on the New Session page. The createSession backend call is failing — audit the Motoko actor's createSession function and the frontend useQueries.ts hook that calls it to identify and resolve the mismatch (e.g. argument shape, principal handling, or stable variable initialization). The New Session form must successfully create a session and navigate to the Chat page without errors.",
+        "id": "REQ-1",
+        "summary": "Fix the landing page project type flow so that when a user selects 'Landing Page' in NewSessionPage and sends a message in ChatPage, the llmService returns a complete, working landing page scaffold (HTML structure, hero section, features, CTA, and styles) instead of failing silently or producing no output.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/pages/NewSessionPage.tsx"
+          "frontend/src/services/llmService.ts",
+          "frontend/src/pages/ChatPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/pages/NewSessionPage.tsx"
+          "frontend/src/services/llmService.ts",
+          "frontend/src/pages/ChatPage.tsx"
         ]
       },
       {
-        "id": "REQ-12",
-        "summary": "Remove all localhost URL references from the pre-built template responses in frontend/src/services/llmService.ts. Template responses must not instruct users to open localhost:5173 or any localhost/127.0.0.1 URL. Replace any such instructions with a note that the project is ready to use and the user can follow the Getting Started steps in their local environment, without mentioning a specific localhost address.",
+        "id": "REQ-2",
+        "summary": "Ensure the landing page template in llmService.ts generates a visually polished scaffold that matches Noventra.Ai's dark theme (OKLCH color tokens, glassmorphism, Space Grotesk font) and includes sections: Hero, Features, How It Works, and CTA with appropriate copy about Noventra.Ai building any project app.",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/services/llmService.ts"
@@ -33,15 +33,6 @@
         "matchedFiles": [
           "frontend/src/services/llmService.ts"
         ]
-      },
-      {
-        "id": "REQ-13",
-        "summary": "Fix the navigation link on the Home landing page (HomePage.tsx) that redirects users to the Sessions page. The link must use the React Router path (/sessions) and must not contain any hardcoded localhost or absolute URL. Verify all CTA buttons ('Start New Project', 'My Sessions') route correctly within the deployed app.",
-        "status": "missing",
-        "plannedFiles": [
-          "frontend/src/pages/HomePage.tsx"
-        ],
-        "matchedFiles": []
       }
     ]
   },
@@ -50,9 +41,7 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/hooks/useQueries.ts",
     "frontend/src/pages/ChatPage.tsx",
-    "frontend/src/pages/NewSessionPage.tsx",
     "frontend/src/services/llmService.ts",
     "project_state.json",
     "scratch/component-selection.json",

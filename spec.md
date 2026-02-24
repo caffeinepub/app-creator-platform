@@ -1,11 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Fix session creation failure, remove localhost URL references from AI template responses, and fix navigation links on the Home page.
+**Goal:** Fix the landing page generation flow in `llmService.ts` so that selecting "Landing Page" as a project type and submitting a prompt produces a complete, visually polished scaffold for Noventra.Ai.
 
 **Planned changes:**
-- Audit and fix the Motoko actor's `createSession` function and the `useQueries.ts` frontend hook to resolve the mismatch causing "Failed to create session. Please try again." errors; ensure successful session creation navigates to the Chat page
-- Remove all `localhost` and `127.0.0.1` URL references from template responses in `frontend/src/services/llmService.ts` across all four project type templates, replacing them with generic "follow the Getting Started steps in your local environment" instructions
-- Fix navigation links in `HomePage.tsx` so that "My Sessions" routes to `/sessions` and "Start New Project" routes to `/sessions/new` using React Router, with no hardcoded localhost or absolute URLs
+- Fix `llmService.ts` so the landing page project type branch returns a non-empty response with code files instead of failing silently.
+- Implement a landing page template in `llmService.ts` that generates a complete scaffold including Hero, Features, How It Works, and CTA sections.
+- Ensure generated copy describes Noventra.Ai as a platform that can build any project type (full-stack apps, mobile apps, landing pages).
+- Apply Noventra.Ai's dark theme styling (OKLCH color tokens, glassmorphism, Space Grotesk font) to the generated landing page scaffold.
+- Wire the fixed landing page template into the ChatPage flow so responses appear correctly when the landing page project type is selected.
 
-**User-visible outcome:** Users can successfully create a new session from the New Session page without errors, AI-generated responses no longer instruct users to open a localhost URL, and all Home page navigation buttons route correctly within the deployed app.
+**User-visible outcome:** When a user selects "Landing Page" in NewSessionPage and submits a prompt in ChatPage, they receive a complete, renderable landing page scaffold with Hero, Features, How It Works, and CTA sections styled with Noventra.Ai's dark theme — with no blank responses or console errors.

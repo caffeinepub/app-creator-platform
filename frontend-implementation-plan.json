@@ -1,59 +1,44 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix session creation failure and remove localhost references from AI responses",
+  "title": "Fix landing page generation in llmService and wire it to the app",
   "requirements": [
     {
-      "id": "REQ-11",
-      "summary": "Fix the 'Failed to create session. Please try again.' error on the New Session page by auditing and correcting the frontend createSession hook call",
+      "id": "REQ-1",
+      "summary": "Fix the landing page project type flow so that when a user selects 'Landing Page' in NewSessionPage and sends a message in ChatPage, the llmService returns a complete, working landing page scaffold instead of failing silently or producing no output",
       "acceptanceCriteria": [
-        "Submitting the New Session form with a project name and project type creates a session in the backend without throwing an error.",
-        "After successful creation, the user is navigated to the Chat page for the new session.",
-        "The error toast 'Failed to create session. Please try again.' no longer appears on valid submissions.",
-        "Existing sessions are unaffected and still load correctly on the Sessions dashboard."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Audit the useCreateSession mutation hook to ensure it correctly calls the backend createSession method with the exact arguments expected by the backend interface (name: string, projectType: string). Verify the mutation function passes these arguments in the correct order and type. Ensure error handling properly catches and reports any backend failures."
-        },
-        {
-          "path": "frontend/src/pages/NewSessionPage.tsx",
-          "operation": "modify",
-          "description": "Review the form submission handler to ensure it correctly invokes the createSession mutation with the project name and selected project type. Verify that after successful session creation, the navigation to the Chat page uses the returned session ID. Add console logging to debug the exact arguments being passed to createSession and any errors returned."
-        }
-      ]
-    },
-    {
-      "id": "REQ-12",
-      "summary": "Remove all localhost URL references from the pre-built template responses in llmService.ts",
-      "acceptanceCriteria": [
-        "No template response in llmService.ts contains the string 'localhost' or '127.0.0.1'.",
-        "Getting Started instructions in generated responses remain helpful but do not reference a specific local URL.",
-        "All four project type templates (fullstack, mobile, landing page, custom) are checked and cleaned."
+        "Selecting 'Landing Page' as project type and submitting a prompt in ChatPage produces a non-empty AI response with code files.",
+        "The llmService landing page template returns at least one code file (e.g., index.html or App.tsx) with a complete landing page scaffold.",
+        "The generated response includes a hero section, a features/highlights section, and a call-to-action.",
+        "No console errors or blank responses occur when the landing page project type is used."
       ],
       "file_operations": [
         {
           "path": "frontend/src/services/llmService.ts",
           "operation": "modify",
-          "description": "Remove all references to 'localhost:5173', 'localhost', and '127.0.0.1' from all template response generators (generateFullStackResponse, generateMobileResponse, generateLandingPageResponse, and any custom project templates). Replace instructions that mention opening a localhost URL with generic guidance such as 'Follow the Getting Started steps in your local development environment' or 'Run the development server and open the application in your browser'. Ensure all four project type templates are updated."
+          "description": "Fix the generateLandingPageResponse function to return a complete, working landing page scaffold with multiple code files. Ensure it returns a proper assistant message with fenced code blocks for index.html (or App.tsx) containing a hero section, features section, and CTA. The response must match the format expected by ChatPage's file extraction logic (triple backticks with filename)."
+        },
+        {
+          "path": "frontend/src/pages/ChatPage.tsx",
+          "operation": "modify",
+          "description": "Review and ensure the handleSend function correctly calls llmService.generateLandingPageResponse when projectType is 'Landing Page'. Verify that the file extraction logic properly parses the landing page response and updates the session files. Add error handling to catch and log any failures in the landing page generation flow."
         }
       ]
     },
     {
-      "id": "REQ-13",
-      "summary": "Fix navigation links on the Home landing page to use React Router paths without hardcoded localhost URLs",
+      "id": "REQ-2",
+      "summary": "Ensure the landing page template in llmService.ts generates a visually polished scaffold that matches Noventra.Ai's dark theme (OKLCH color tokens, glassmorphism, Space Grotesk font) and includes sections: Hero, Features, How It Works, and CTA with appropriate copy about Noventra.Ai building any project app",
       "acceptanceCriteria": [
-        "Clicking 'My Sessions' in the navigation bar routes to /sessions without a localhost redirect.",
-        "Clicking 'Start New Project' routes to /sessions/new without a localhost redirect.",
-        "All navigation works correctly in the deployed Caffeine preview environment (not just localhost)."
+        "The landing page template output contains Hero, Features, How It Works, and CTA sections.",
+        "Copy reflects that Noventra.Ai can generate any project type: full-stack apps, mobile apps, and landing pages.",
+        "Styles reference the existing dark theme color tokens and Space Grotesk font.",
+        "The generated scaffold is valid, renderable code."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/HomePage.tsx",
+          "path": "frontend/src/services/llmService.ts",
           "operation": "modify",
-          "description": "Audit all navigation links and CTA buttons ('My Sessions', 'Start New Project') to ensure they use React Router's Link component or useNavigate hook with relative paths (/sessions, /sessions/new) instead of any hardcoded absolute URLs containing localhost. Verify no anchor tags with href attributes pointing to localhost URLs exist. Ensure all navigation elements use proper React Router navigation methods."
+          "description": "Update the generateLandingPageResponse function to produce a complete landing page scaffold with Hero, Features, How It Works, and CTA sections. The template must use OKLCH color tokens from frontend/src/index.css (--color-bg, --color-surface, --color-primary, etc.), glassmorphism utilities (glass-card, glass-darker), and Space Grotesk font. Include copy about Noventra.Ai being able to generate full-stack apps, mobile apps, and landing pages. Output the scaffold as either a single-page React component (App.tsx with Tailwind/CSS) or an HTML file with embedded styles that reference the existing design system."
         }
       ]
     }

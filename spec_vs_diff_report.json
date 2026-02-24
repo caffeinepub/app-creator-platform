@@ -1,25 +1,23 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-24T21:00:46.047Z",
-  "summary": "The diff addresses all three requirements: REQ-11 (session creation fix via useQueries.ts and NewSessionPage.tsx), REQ-12 (localhost removal from llmService.ts), and REQ-13 (HomePage.tsx navigation links). Evidence from file summaries and modified files confirms most changes are present, but REQ-13 lacks direct content evidence in the diff.",
+  "generatedAt": "2026-02-24T21:35:53.189Z",
+  "summary": "The diff implements both REQ-1 and REQ-2. The llmService.ts now includes a buildLandingPageScaffold function that returns a complete HTML landing page with Hero, Features, How It Works, and CTA sections using Noventra.Ai's dark theme (Space Grotesk font, dark color tokens, glassmorphism). ChatPage.tsx is updated to call generateAIResponse with the project type and includes fallback handling to prevent blank responses. The file summary confirms normalized project type routing and extractFilesFromResponse improvements.",
   "missing_requirements": [
     {
-      "id": "REQ-13",
-      "requirement": "Fix the navigation link on the Home landing page (HomePage.tsx) that redirects users to the Sessions page. The link must use the React Router path (/sessions) and must not contain any hardcoded localhost or absolute URL.",
-      "reason": "The diff does not include a content diff for HomePage.tsx. The file-summary entry for HomePage.tsx only mentions animation changes (framer-motion removal) with no mention of fixing navigation links or CTA buttons routing to /sessions or /sessions/new. There is no evidence in the diff that HomePage.tsx navigation links were corrected.",
+      "id": "REQ-2",
+      "requirement": "Styles reference the existing dark theme OKLCH color tokens",
+      "reason": "The generated scaffold in llmService.ts uses hex/rgba color values (e.g., #030712, rgba(99,102,241,0.35)) rather than OKLCH color tokens as specified. The existing global CSS uses OKLCH tokens, but the scaffold does not reference them.",
       "evidence": [
-        "frontend-file-summaries.txt"
+        "frontend/src/services/llmService.ts"
       ]
     }
   ],
   "hallucinated_features": [],
-  "confidence": 0.78,
+  "confidence": 0.82,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/src/hooks/useQueries.ts",
     "frontend/src/pages/ChatPage.tsx",
-    "frontend/src/pages/NewSessionPage.tsx",
     "frontend/src/services/llmService.ts",
     "project_state.json"
   ]

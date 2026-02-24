@@ -1,567 +1,347 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from '@tanstack/react-router';
-import {
-    Sparkles,
-    ArrowLeft,
-    Send,
-    Download,
-    FileCode,
-    Loader2,
-    AlertCircle,
-    Layers,
-    Smartphone,
-    Layout,
-    Code2,
-} from 'lucide-react';
+import { Download, Send, ArrowLeft, FileCode, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { useGetSession, useAddMessage, useUpdateFiles } from '@/hooks/useQueries';
-import { generateAIResponse, extractFilesFromResponse } from '@/services/llmService';
-import type { Message } from '../backend';
-import MessageBubble from '@/components/MessageBubble';
-
-function getProjectTypeIcon(type: string) {
-    switch (type) {
-        case 'fullstack':
-            return <Layers size={16} />;
-        case 'mobile':
-            return <Smartphone size={16} />;
-        case 'landing':
-            return <Layout size={16} />;
-        default:
-            return <Code2 size={16} />;
-    }
-}
-
-function getProjectTypeLabel(type: string): string {
-    switch (type) {
-        case 'fullstack':
-            return 'Full-Stack App';
-        case 'mobile':
-            return 'Mobile App';
-        case 'landing':
-            return 'Landing Page';
-        default:
-            return 'Custom Project';
-    }
-}
-
-function getStarterPrompts(projectType: string): string[] {
-    switch (projectType) {
-        case 'fullstack':
-            return [
-                'Build a todo app with user auth',
-                'Create a blog platform with CRUD',
-                'Make an e-commerce store',
-            ];
-        case 'mobile':
-            return [
-                'Build a fitness tracker app',
-                'Create a recipe app with search',
-                'Make a notes app with categories',
-            ];
-        case 'landing':
-            return [
-                'Create a SaaS product landing page',
-                'Build a portfolio landing page',
-                'Make a startup landing page',
-            ];
-        default:
-            return [
-                'Build a full-stack web app',
-                'Create a REST API with authentication',
-                'Make a React dashboard with charts',
-            ];
-    }
-}
+import { useGetSession, useAddMessage, useUpdateFiles } from '../hooks/useQueries';
+import { generateAIResponse, extractFilesFromResponse, GeneratedFile } from '../services/llmService';
+import MessageBubble from '../components/MessageBubble';
 
 export default function ChatPage() {
-    const { sessionId } = useParams({ from: '/sessions/$sessionId/chat' });
-    const navigate = useNavigate();
-    const { data: session, isLoading, error, refetch } = useGetSession(sessionId);
-    const addMessage = useAddMessage();
-    const updateFiles = useUpdateFiles();
+  const { sessionId } = useParams({ from: '/sessions/$sessionId/chat' });
+  const navigate = useNavigate();
 
-    const [input, setInput] = useState('');
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [localMessages, setLocalMessages] = useState<Message[]>([]);
-    const [localFiles, setLocalFiles] = useState<Record<string, string>>({});
-    const messagesEndRef = useRef<HTMLDivElement>(null);
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { data: session, isLoading: sessionLoading, error: sessionError } = useGetSession(sessionId);
+  const addMessageMutation = useAddMessage();
+  const updateFilesMutation = useUpdateFiles();
 
-    // Sync local state from session data
-    useEffect(() => {
-        if (session) {
-            setLocalMessages(session.messages);
-            const filesMap: Record<string, string> = {};
-            session.files.forEach((f) => {
-                filesMap[f.filename] = f.content;
-            });
-            setLocalFiles(filesMap);
-        }
-    }, [session]);
+  const [input, setInput] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [localFiles, setLocalFiles] = useState<Record<string, string>>({});
+  const [optimisticMessages, setOptimisticMessages] = useState<
+    Array<{ role: 'user' | 'assistant'; content: string; timestamp: bigint }>
+  >([]);
 
-    // Auto-scroll to bottom
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [localMessages, isGenerating]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    // Auto-resize textarea
-    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setInput(e.target.value);
-        const ta = e.currentTarget;
-        ta.style.height = 'auto';
-        ta.style.height = Math.min(ta.scrollHeight, 160) + 'px';
+  // Sync local files from session
+  useEffect(() => {
+    if (session?.files) {
+      const fileMap: Record<string, string> = {};
+      session.files.forEach(f => {
+        fileMap[f.filename] = f.content;
+      });
+      setLocalFiles(fileMap);
+    }
+  }, [session?.files]);
+
+  // Scroll to bottom on new messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [session?.messages, optimisticMessages]);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
+    }
+  }, [input]);
+
+  const sessionMessages = (session?.messages ?? []).map(m => ({
+    role: (m.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
+    content: m.content,
+    timestamp: m.timestamp,
+  }));
+
+  const allMessages = [...sessionMessages, ...optimisticMessages];
+
+  const handleSend = async () => {
+    const trimmed = input.trim();
+    if (!trimmed || isSending) return;
+
+    setInput('');
+    setIsSending(true);
+
+    // Optimistic user message
+    const userOptimistic: { role: 'user' | 'assistant'; content: string; timestamp: bigint } = {
+      role: 'user',
+      content: trimmed,
+      timestamp: BigInt(Date.now()) * BigInt(1_000_000),
     };
+    setOptimisticMessages(prev => [...prev, userOptimistic]);
 
-    const handleSend = useCallback(async () => {
-        const trimmed = input.trim();
-        if (!trimmed || isGenerating || !session) return;
+    try {
+      // Persist user message to backend
+      await addMessageMutation.mutateAsync({
+        sessionId,
+        role: 'user',
+        content: trimmed,
+      });
 
-        setInput('');
-        if (textareaRef.current) {
-            textareaRef.current.style.height = 'auto';
-        }
+      // Build message history for context
+      const history = allMessages.map(m => ({
+        role: m.role,
+        content: m.content,
+      }));
 
-        // Optimistically add user message to local state
-        const userMsg: Message = {
-            role: 'user',
-            content: trimmed,
-            timestamp: BigInt(Date.now()) * BigInt(1_000_000),
-        };
-        setLocalMessages((prev) => [...prev, userMsg]);
-        setIsGenerating(true);
+      // Generate AI response using the project type
+      const projectType = session?.projectType ?? 'Custom';
+      let aiResponse: string;
 
-        try {
-            // Persist user message to backend
-            await addMessage.mutateAsync({
-                sessionId,
-                role: 'user',
-                content: trimmed,
+      try {
+        aiResponse = generateAIResponse(trimmed, projectType, history);
+      } catch (genError) {
+        console.error('Error generating AI response:', genError);
+        aiResponse = `I encountered an issue generating a response. Please try again.\n\nProject type: ${projectType}\nYour request: ${trimmed}`;
+      }
+
+      if (!aiResponse || aiResponse.trim() === '') {
+        aiResponse = `I'm ready to help you build your ${projectType}! Please describe what you'd like to create or modify, and I'll generate the code for you.`;
+      }
+
+      // Optimistic assistant message
+      const assistantOptimistic: { role: 'user' | 'assistant'; content: string; timestamp: bigint } = {
+        role: 'assistant',
+        content: aiResponse,
+        timestamp: BigInt(Date.now() + 1) * BigInt(1_000_000),
+      };
+      setOptimisticMessages(prev => [...prev, assistantOptimistic]);
+
+      // Persist assistant message to backend
+      await addMessageMutation.mutateAsync({
+        sessionId,
+        role: 'assistant',
+        content: aiResponse,
+      });
+
+      // Extract files from the AI response
+      let extractedFiles: GeneratedFile[] = [];
+      try {
+        extractedFiles = extractFilesFromResponse(aiResponse);
+      } catch (extractError) {
+        console.error('Error extracting files:', extractError);
+      }
+
+      // Update files in backend and local state
+      if (extractedFiles.length > 0) {
+        const newFileMap: Record<string, string> = { ...localFiles };
+
+        for (const file of extractedFiles) {
+          try {
+            await updateFilesMutation.mutateAsync({
+              sessionId,
+              filename: file.filename,
+              content: file.content,
             });
-
-            // Build message history for LLM
-            const history = localMessages
-                .filter((m) => m.role === 'user' || m.role === 'assistant')
-                .map((m) => ({
-                    role: m.role as 'user' | 'assistant',
-                    content: m.content,
-                }));
-
-            // Add the current user message to history
-            history.push({ role: 'user', content: trimmed });
-
-            // Call LLM — generateAIResponse(messages, projectType)
-            const aiResponse = await generateAIResponse(history, session.projectType);
-
-            // Optimistically add assistant message
-            const assistantMsg: Message = {
-                role: 'assistant',
-                content: aiResponse,
-                timestamp: BigInt(Date.now()) * BigInt(1_000_000),
-            };
-            setLocalMessages((prev) => [...prev, assistantMsg]);
-
-            // Persist assistant message to backend
-            await addMessage.mutateAsync({
-                sessionId,
-                role: 'assistant',
-                content: aiResponse,
-            });
-
-            // Extract and save files — returns Array<{filename, content}>
-            const extractedFilesArray = extractFilesFromResponse(aiResponse);
-            if (extractedFilesArray.length > 0) {
-                // Convert array to Record<string, string> for local state
-                const extractedFilesMap: Record<string, string> = {};
-                extractedFilesArray.forEach(({ filename, content }) => {
-                    extractedFilesMap[filename] = content;
-                });
-
-                setLocalFiles((prev) => ({ ...prev, ...extractedFilesMap }));
-
-                // Persist each file to backend
-                await Promise.all(
-                    extractedFilesArray.map(({ filename, content }) =>
-                        updateFiles.mutateAsync({ sessionId, filename, content })
-                    )
-                );
-
-                toast.success(
-                    `${extractedFilesArray.length} file${
-                        extractedFilesArray.length > 1 ? 's' : ''
-                    } generated`
-                );
-            }
-
-            // Refetch to sync
-            refetch();
-        } catch (err) {
-            const message = err instanceof Error ? err.message : 'Unknown error';
-            toast.error(`Failed: ${message}`);
-            // Remove optimistic user message on error
-            setLocalMessages((prev) => prev.filter((m) => m !== userMsg));
-        } finally {
-            setIsGenerating(false);
-        }
-    }, [input, isGenerating, session, sessionId, localMessages, addMessage, updateFiles, refetch]);
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
-        }
-    };
-
-    const handleDownloadAll = () => {
-        const fileCount = Object.keys(localFiles).length;
-        if (fileCount === 0) {
-            toast.error('No files to download yet');
-            return;
+            newFileMap[file.filename] = file.content;
+          } catch (fileError) {
+            console.error(`Error saving file ${file.filename}:`, fileError);
+          }
         }
 
-        let content = `# ${session?.name ?? 'Project'}\n`;
-        content += `# Generated by Noventra.Ai\n`;
-        content += `# Project Type: ${getProjectTypeLabel(session?.projectType ?? 'custom')}\n`;
-        content += `# Files: ${fileCount}\n\n`;
+        setLocalFiles(newFileMap);
+        toast.success(`${extractedFiles.length} file${extractedFiles.length !== 1 ? 's' : ''} generated`);
+      }
 
-        Object.entries(localFiles).forEach(([filename, code]) => {
-            content += `${'='.repeat(60)}\n`;
-            content += `FILE: ${filename}\n`;
-            content += `${'='.repeat(60)}\n\n`;
-            content += code;
-            content += '\n\n';
-        });
+      // Clear optimistic messages (backend now has them)
+      setOptimisticMessages([]);
+    } catch (error) {
+      console.error('Error in handleSend:', error);
+      toast.error('Failed to send message. Please try again.');
+      // Remove the optimistic user message on error
+      setOptimisticMessages([]);
+      setInput(trimmed);
+    } finally {
+      setIsSending(false);
+    }
+  };
 
-        const blob = new Blob([content], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${(session?.name ?? 'project')
-            .replace(/\s+/g, '-')
-            .toLowerCase()}-noventra-ai.txt`;
-        a.click();
-        URL.revokeObjectURL(url);
-        toast.success(`Downloaded ${fileCount} files`);
-    };
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
 
-    const fileCount = Object.keys(localFiles).length;
-
-    if (isLoading) {
-        return (
-            <div
-                className="min-h-screen flex items-center justify-center"
-                style={{ backgroundColor: 'var(--surface-0)' }}
-            >
-                <div className="flex flex-col items-center gap-4">
-                    <Loader2
-                        size={32}
-                        className="animate-spin"
-                        style={{ color: 'var(--indigo)' }}
-                    />
-                    <p className="text-sm" style={{ color: 'var(--text-dim)' }}>
-                        Loading session...
-                    </p>
-                </div>
-            </div>
-        );
+  const handleDownloadAll = () => {
+    const files = Object.entries(localFiles);
+    if (files.length === 0) {
+      toast.error('No files to download yet.');
+      return;
     }
 
-    if (error || !session) {
-        return (
-            <div
-                className="min-h-screen flex items-center justify-center"
-                style={{ backgroundColor: 'var(--surface-0)' }}
-            >
-                <div className="flex flex-col items-center gap-4 text-center">
-                    <AlertCircle size={32} style={{ color: 'oklch(0.65 0.22 25)' }} />
-                    <p className="font-semibold" style={{ color: 'var(--text-bright)' }}>
-                        Session not found
-                    </p>
-                    <button
-                        onClick={() => navigate({ to: '/sessions' })}
-                        className="btn-secondary text-sm"
-                    >
-                        Back to Sessions
-                    </button>
-                </div>
-            </div>
-        );
-    }
+    files.forEach(([filename, content]) => {
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
 
+    toast.success(`Downloaded ${files.length} file${files.length !== 1 ? 's' : ''}`);
+  };
+
+  if (sessionLoading) {
     return (
-        <div
-            className="min-h-screen flex flex-col"
-            style={{ backgroundColor: 'var(--surface-0)' }}
-        >
-            {/* Header */}
-            <header
-                className="flex-shrink-0 border-b z-10"
-                style={{
-                    borderColor: 'var(--border-subtle)',
-                    backgroundColor: 'oklch(0.08 0 0 / 90%)',
-                    backdropFilter: 'blur(20px)',
-                    position: 'sticky',
-                    top: 0,
-                }}
-            >
-                <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
-                    {/* Back */}
-                    <button
-                        onClick={() => navigate({ to: '/sessions' })}
-                        className="flex items-center gap-1.5 text-sm flex-shrink-0"
-                        style={{ color: 'var(--text-dim)', transition: 'color 0.2s ease' }}
-                        onMouseEnter={(e) =>
-                            ((e.currentTarget as HTMLButtonElement).style.color = 'var(--text-bright)')
-                        }
-                        onMouseLeave={(e) =>
-                            ((e.currentTarget as HTMLButtonElement).style.color = 'var(--text-dim)')
-                        }
-                    >
-                        <ArrowLeft size={15} />
-                    </button>
-
-                    {/* Session info */}
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <div
-                            className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                            style={{ background: 'var(--indigo)' }}
-                        >
-                            <Sparkles size={13} color="white" />
-                        </div>
-                        <div className="min-w-0">
-                            <div
-                                className="font-semibold text-sm truncate"
-                                style={{ fontFamily: 'Space Grotesk', color: 'var(--text-bright)' }}
-                            >
-                                {session.name}
-                            </div>
-                            <div
-                                className="flex items-center gap-1 text-xs"
-                                style={{ color: 'var(--text-dim)' }}
-                            >
-                                {getProjectTypeIcon(session.projectType)}
-                                {getProjectTypeLabel(session.projectType)}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* File counter */}
-                    {fileCount > 0 && (
-                        <div
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs flex-shrink-0"
-                            style={{
-                                background: 'oklch(0.55 0.22 264 / 12%)',
-                                border: '1px solid oklch(0.55 0.22 264 / 20%)',
-                                color: 'oklch(0.75 0.18 264)',
-                            }}
-                        >
-                            <FileCode size={12} />
-                            {fileCount} file{fileCount !== 1 ? 's' : ''}
-                        </div>
-                    )}
-
-                    {/* Download */}
-                    <button
-                        onClick={handleDownloadAll}
-                        disabled={fileCount === 0}
-                        className="btn-cyan text-xs px-3 py-2 flex-shrink-0"
-                        style={{ opacity: fileCount === 0 ? 0.35 : 1 }}
-                        title={fileCount === 0 ? 'No files yet' : `Download ${fileCount} files`}
-                    >
-                        <Download size={14} />
-                        Download
-                    </button>
-                </div>
-            </header>
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto">
-                <div className="max-w-3xl mx-auto px-4 py-8">
-                    {localMessages.length === 0 ? (
-                        <div
-                            className="text-center py-20"
-                            style={{ animation: 'fade-in 0.4s ease both' }}
-                        >
-                            <div
-                                className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
-                                style={{
-                                    background: 'oklch(0.55 0.22 264 / 10%)',
-                                    border: '1px solid oklch(0.55 0.22 264 / 20%)',
-                                }}
-                            >
-                                <Sparkles size={28} style={{ color: 'var(--indigo)' }} />
-                            </div>
-                            <h3
-                                className="text-xl font-semibold mb-2"
-                                style={{ fontFamily: 'Space Grotesk', color: 'var(--text-bright)' }}
-                            >
-                                Ready to build
-                            </h3>
-                            <p
-                                className="text-sm max-w-sm mx-auto"
-                                style={{ color: 'var(--text-dim)' }}
-                            >
-                                Describe what you want to create. I'll generate the complete codebase
-                                for you — files, structure, and all.
-                            </p>
-
-                            {/* Starter prompts */}
-                            <div className="mt-8 flex flex-wrap gap-2 justify-center">
-                                {getStarterPrompts(session.projectType).map((prompt) => (
-                                    <button
-                                        key={prompt}
-                                        onClick={() => setInput(prompt)}
-                                        className="text-xs px-3 py-2 rounded-lg"
-                                        style={{
-                                            background: 'oklch(0.93 0 0 / 5%)',
-                                            border: '1px solid oklch(0.93 0 0 / 10%)',
-                                            color: 'var(--text-dim)',
-                                            transition: 'background 0.2s ease, color 0.2s ease',
-                                            cursor: 'pointer',
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            (e.currentTarget as HTMLButtonElement).style.background =
-                                                'oklch(0.93 0 0 / 10%)';
-                                            (e.currentTarget as HTMLButtonElement).style.color =
-                                                'var(--text-bright)';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            (e.currentTarget as HTMLButtonElement).style.background =
-                                                'oklch(0.93 0 0 / 5%)';
-                                            (e.currentTarget as HTMLButtonElement).style.color =
-                                                'var(--text-dim)';
-                                        }}
-                                    >
-                                        {prompt}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="space-y-5">
-                            {localMessages.map((message, index) => (
-                                <div
-                                    key={`${message.role}-${index}`}
-                                    style={{ animation: 'fade-up 0.3s ease both' }}
-                                >
-                                    <MessageBubble
-                                        role={message.role as 'user' | 'assistant'}
-                                        content={message.content}
-                                    />
-                                </div>
-                            ))}
-
-                            {/* Generating indicator */}
-                            {isGenerating && (
-                                <div style={{ animation: 'fade-up 0.3s ease both' }}>
-                                    <div
-                                        className="flex items-start gap-3"
-                                    >
-                                        <div
-                                            className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-                                            style={{
-                                                background: 'var(--indigo)',
-                                            }}
-                                        >
-                                            <Sparkles size={13} color="white" />
-                                        </div>
-                                        <div
-                                            className="px-4 py-3 rounded-2xl rounded-tl-sm flex items-center gap-2"
-                                            style={{
-                                                background: 'oklch(0.93 0 0 / 6%)',
-                                                border: '1px solid oklch(0.93 0 0 / 10%)',
-                                            }}
-                                        >
-                                            <Loader2
-                                                size={14}
-                                                className="animate-spin"
-                                                style={{ color: 'var(--indigo)' }}
-                                            />
-                                            <span
-                                                className="text-sm"
-                                                style={{ color: 'var(--text-dim)' }}
-                                            >
-                                                Generating code...
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            <div ref={messagesEndRef} />
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Input */}
-            <div
-                className="flex-shrink-0 border-t"
-                style={{
-                    borderColor: 'var(--border-subtle)',
-                    backgroundColor: 'oklch(0.08 0 0 / 80%)',
-                    backdropFilter: 'blur(20px)',
-                }}
-            >
-                <div className="max-w-3xl mx-auto px-4 py-4">
-                    <div
-                        className="flex items-end gap-3 rounded-2xl px-4 py-3"
-                        style={{
-                            background: 'oklch(0.93 0 0 / 5%)',
-                            border: '1px solid oklch(0.93 0 0 / 12%)',
-                            transition: 'border-color 0.2s ease',
-                        }}
-                        onFocus={() => {}}
-                    >
-                        <textarea
-                            ref={textareaRef}
-                            value={input}
-                            onChange={handleInputChange}
-                            onKeyDown={handleKeyDown}
-                            placeholder="Describe what you want to build or modify... (Enter to send, Shift+Enter for new line)"
-                            rows={1}
-                            disabled={isGenerating}
-                            className="flex-1 bg-transparent outline-none resize-none text-sm leading-relaxed"
-                            style={{
-                                color: 'var(--text-bright)',
-                                fontFamily: 'Inter',
-                                minHeight: '24px',
-                                maxHeight: '160px',
-                            }}
-                        />
-                        <button
-                            onClick={handleSend}
-                            disabled={!input.trim() || isGenerating}
-                            className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all"
-                            style={{
-                                background:
-                                    input.trim() && !isGenerating
-                                        ? 'var(--indigo)'
-                                        : 'oklch(0.93 0 0 / 8%)',
-                                color:
-                                    input.trim() && !isGenerating
-                                        ? 'white'
-                                        : 'var(--text-faint)',
-                                cursor:
-                                    input.trim() && !isGenerating ? 'pointer' : 'not-allowed',
-                                transition: 'background 0.2s ease',
-                            }}
-                        >
-                            {isGenerating ? (
-                                <Loader2 size={14} className="animate-spin" />
-                            ) : (
-                                <Send size={14} />
-                            )}
-                        </button>
-                    </div>
-                    <p
-                        className="text-center text-xs mt-2"
-                        style={{ color: 'var(--text-faint)' }}
-                    >
-                        Noventra.Ai generates complete, production-ready code
-                    </p>
-                </div>
-            </div>
+      <div className="min-h-screen bg-bg flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          <p className="text-muted font-inter">Loading session...</p>
         </div>
+      </div>
     );
+  }
+
+  if (sessionError || !session) {
+    return (
+      <div className="min-h-screen bg-bg flex items-center justify-center">
+        <div className="glass-card p-8 max-w-md text-center">
+          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+          <h2 className="font-grotesk text-xl font-bold text-text mb-2">Session Not Found</h2>
+          <p className="text-muted mb-6">
+            {sessionError instanceof Error ? sessionError.message : 'This session could not be loaded.'}
+          </p>
+          <button
+            onClick={() => navigate({ to: '/sessions' })}
+            className="btn-primary px-6 py-2 rounded-lg font-grotesk font-semibold"
+          >
+            Back to Sessions
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const fileCount = Object.keys(localFiles).length;
+
+  return (
+    <div className="min-h-screen bg-bg flex flex-col">
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b border-border bg-bg/80 backdrop-blur-xl">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              onClick={() => navigate({ to: '/sessions' })}
+              className="p-2 rounded-lg text-muted hover:text-text hover:bg-surface transition-colors flex-shrink-0"
+              aria-label="Back to sessions"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div className="min-w-0">
+              <h1 className="font-grotesk font-bold text-text truncate text-sm sm:text-base">
+                {session.name}
+              </h1>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted font-inter">
+                  {session.projectType}
+                </span>
+                {fileCount > 0 && (
+                  <span className="flex items-center gap-1 text-xs text-primary">
+                    <FileCode className="w-3 h-3" />
+                    {fileCount} file{fileCount !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={handleDownloadAll}
+            disabled={fileCount === 0}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg font-grotesk font-semibold text-sm
+              bg-primary/10 text-primary border border-primary/20
+              hover:bg-primary/20 transition-colors
+              disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+          >
+            <Download className="w-4 h-4" />
+            <span className="hidden sm:inline">
+              {fileCount > 0 ? `Download (${fileCount})` : 'Download'}
+            </span>
+          </button>
+        </div>
+      </header>
+
+      {/* Messages */}
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
+          {allMessages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-4">
+                <FileCode className="w-8 h-8 text-primary" />
+              </div>
+              <h2 className="font-grotesk text-xl font-bold text-text mb-2">
+                Start Building
+              </h2>
+              <p className="text-muted font-inter max-w-sm">
+                Describe what you want to build for your{' '}
+                <span className="text-primary font-medium">{session.projectType}</span> project
+                and Noventra.Ai will generate the code.
+              </p>
+            </div>
+          ) : (
+            allMessages.map((msg, idx) => (
+              <MessageBubble
+                key={`${msg.role}-${idx}-${msg.timestamp.toString()}`}
+                role={msg.role}
+                content={msg.content}
+              />
+            ))
+          )}
+
+          {isSending && (
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
+                <span className="text-xs font-bold text-primary">AI</span>
+              </div>
+              <div className="glass-card px-4 py-3 flex items-center gap-2">
+                <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                <span className="text-sm text-muted font-inter">Generating...</span>
+              </div>
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </div>
+      </main>
+
+      {/* Input */}
+      <footer className="sticky bottom-0 border-t border-border bg-bg/80 backdrop-blur-xl">
+        <div className="max-w-3xl mx-auto px-4 py-4">
+          <div className="glass-card flex items-end gap-3 p-3">
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Describe what you want to build or modify... (Enter to send, Shift+Enter for new line)"
+              rows={1}
+              disabled={isSending}
+              className="flex-1 bg-transparent text-text placeholder-muted font-inter text-sm resize-none outline-none min-h-[24px] max-h-[160px] disabled:opacity-50"
+            />
+            <button
+              onClick={handleSend}
+              disabled={!input.trim() || isSending}
+              className="p-2 rounded-lg bg-primary text-white hover:bg-primary/80 transition-colors
+                disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+              aria-label="Send message"
+            >
+              {isSending ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Send className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+          <p className="text-center text-xs text-muted mt-2 font-inter">
+            Noventra.Ai generates complete, production-ready code
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
 }
