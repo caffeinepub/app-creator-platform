@@ -1,345 +1,215 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import {
-    Sparkles,
-    ArrowLeft,
-    Layers,
-    Smartphone,
-    Layout,
-    Code2,
-    ArrowRight,
-    Loader2,
-} from 'lucide-react';
+import { useInternetIdentity } from '../hooks/useInternetIdentity';
+import { useCreateSession } from '../hooks/useQueries';
+import { useActor } from '../hooks/useActor';
+import LoginButton from '../components/LoginButton';
+import { Globe, Layout, Smartphone, Server, ArrowLeft, Loader2, Sparkles, Heart } from 'lucide-react';
 import { toast } from 'sonner';
-import { useCreateSession } from '@/hooks/useQueries';
-import { useActor } from '@/hooks/useActor';
 
-const PROJECT_TYPES = [
-    {
-        id: 'custom',
-        label: 'Custom Project',
-        description: 'Build anything — I adapt to your exact requirements.',
-        icon: <Code2 size={22} />,
-        color: 'oklch(0.55 0.22 264)',
-        colorDim: 'oklch(0.55 0.22 264 / 15%)',
-        colorBorder: 'oklch(0.55 0.22 264 / 25%)',
-    },
-    {
-        id: 'fullstack',
-        label: 'Full-Stack App',
-        description: 'React frontend + Node.js/FastAPI backend + database.',
-        icon: <Layers size={22} />,
-        color: 'oklch(0.72 0.17 200)',
-        colorDim: 'oklch(0.72 0.17 200 / 15%)',
-        colorBorder: 'oklch(0.72 0.17 200 / 25%)',
-    },
-    {
-        id: 'mobile',
-        label: 'Mobile App',
-        description: 'React Native with navigation and polished UI.',
-        icon: <Smartphone size={22} />,
-        color: 'oklch(0.70 0.18 162)',
-        colorDim: 'oklch(0.70 0.18 162 / 15%)',
-        colorBorder: 'oklch(0.70 0.18 162 / 25%)',
-    },
-    {
-        id: 'landing',
-        label: 'Landing Page',
-        description: 'Conversion-optimized React + Tailwind landing page.',
-        icon: <Layout size={22} />,
-        color: 'oklch(0.65 0.25 303)',
-        colorDim: 'oklch(0.65 0.25 303 / 15%)',
-        colorBorder: 'oklch(0.65 0.25 303 / 25%)',
-    },
+const projectTypes = [
+  {
+    id: 'Landing Page',
+    label: 'Landing Page',
+    desc: 'Conversion-optimized React + Tailwind landing page.',
+    icon: <Globe className="w-6 h-6" />,
+    color: 'text-indigo-400',
+    borderColor: 'border-indigo-500/40',
+    bgColor: 'bg-indigo-500/10',
+  },
+  {
+    id: 'Full-Stack App',
+    label: 'Full-Stack App',
+    desc: 'React frontend with Node.js/Express backend.',
+    icon: <Layout className="w-6 h-6" />,
+    color: 'text-cyan-400',
+    borderColor: 'border-cyan-500/40',
+    bgColor: 'bg-cyan-500/10',
+  },
+  {
+    id: 'Mobile App',
+    label: 'Mobile App',
+    desc: 'React Native with navigation and polished UI.',
+    icon: <Smartphone className="w-6 h-6" />,
+    color: 'text-purple-400',
+    borderColor: 'border-purple-500/40',
+    bgColor: 'bg-purple-500/10',
+  },
+  {
+    id: 'API Backend',
+    label: 'API Backend',
+    desc: 'RESTful API with authentication and database.',
+    icon: <Server className="w-6 h-6" />,
+    color: 'text-green-400',
+    borderColor: 'border-green-500/40',
+    bgColor: 'bg-green-500/10',
+  },
 ];
 
 export default function NewSessionPage() {
-    const navigate = useNavigate();
-    const createSession = useCreateSession();
-    const { actor, isFetching: actorLoading } = useActor();
-    const [name, setName] = useState('');
-    const [selectedType, setSelectedType] = useState('custom');
+  const navigate = useNavigate();
+  const { identity } = useInternetIdentity();
+  const { isFetching: actorLoading } = useActor();
+  const createSession = useCreateSession();
 
-    useEffect(() => {
-        document.title = 'New Project — Noventra.Ai';
-    }, []);
+  const [projectName, setProjectName] = useState('');
+  const [selectedType, setSelectedType] = useState('Landing Page');
 
-    const isReady = !!actor && !actorLoading;
-    const isDisabled = createSession.isPending || !name.trim() || !isReady;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = projectName.trim();
+    if (!name) {
+      toast.error('Please enter a project name');
+      return;
+    }
+    if (!identity) {
+      toast.error('Please login first');
+      return;
+    }
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const trimmedName = name.trim();
-        if (!trimmedName) {
-            toast.error('Please enter a project name');
-            return;
-        }
-        if (!isReady) {
-            toast.error('Still connecting to the network. Please wait a moment.');
-            return;
-        }
+    try {
+      const sessionId = await createSession.mutateAsync({ name, projectType: selectedType });
+      navigate({ to: '/sessions/$sessionId/chat', params: { sessionId } });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to create session';
+      toast.error(msg);
+    }
+  };
 
-        try {
-            const sessionId = await createSession.mutateAsync({
-                name: trimmedName,
-                projectType: selectedType,
-            });
-            toast.success('Session created!');
-            navigate({ to: '/sessions/$sessionId/chat', params: { sessionId } });
-        } catch (err) {
-            const message = err instanceof Error ? err.message : 'Unknown error';
-            toast.error(`Failed to create session: ${message}`);
-        }
-    };
+  return (
+    <div className="min-h-screen bg-background text-text">
+      {/* Background glows */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-1/4 left-1/3 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-cyan-500/8 rounded-full blur-3xl" />
+      </div>
 
-    return (
-        <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--surface-0)' }}>
-            {/* Background glow */}
-            <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden>
-                <div
-                    className="absolute top-[20%] left-[50%] -translate-x-1/2 w-[600px] h-[400px] rounded-full opacity-10"
-                    style={{
-                        background:
-                            'radial-gradient(ellipse, oklch(0.55 0.22 264) 0%, transparent 70%)',
-                        filter: 'blur(80px)',
-                    }}
-                />
-            </div>
-
-            {/* Header */}
-            <header
-                className="relative z-10 border-b"
-                style={{
-                    borderColor: 'var(--border-subtle)',
-                    backgroundColor: 'oklch(0.08 0 0 / 80%)',
-                    backdropFilter: 'blur(20px)',
-                }}
-            >
-                <nav className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
-                    <button
-                        onClick={() => navigate({ to: '/sessions' })}
-                        className="flex items-center gap-2 text-sm"
-                        style={{ color: 'var(--text-dim)', transition: 'color 0.2s ease' }}
-                        onMouseEnter={(e) =>
-                            ((e.currentTarget as HTMLButtonElement).style.color = 'var(--text-bright)')
-                        }
-                        onMouseLeave={(e) =>
-                            ((e.currentTarget as HTMLButtonElement).style.color = 'var(--text-dim)')
-                        }
-                    >
-                        <ArrowLeft size={16} />
-                        Back
-                    </button>
-                    <div className="flex items-center gap-2">
-                        <div
-                            className="w-7 h-7 rounded-lg flex items-center justify-center"
-                            style={{ background: 'var(--indigo)' }}
-                        >
-                            <Sparkles size={13} color="white" />
-                        </div>
-                        <span
-                            className="font-bold text-base"
-                            style={{ fontFamily: 'Space Grotesk', color: 'var(--text-bright)' }}
-                        >
-                            Noventra<span style={{ color: 'var(--cyan)' }}>.Ai</span>
-                        </span>
-                    </div>
-                    <div className="w-16" />
-                </nav>
-            </header>
-
-            {/* Content */}
-            <main className="relative z-10 flex-1 flex items-center justify-center px-6 py-12">
-                <div
-                    className="w-full max-w-2xl"
-                    style={{ animation: 'fade-up 0.5s ease both' }}
-                >
-                    <div className="text-center mb-10">
-                        <h1
-                            className="text-3xl font-bold mb-2"
-                            style={{ fontFamily: 'Space Grotesk', color: 'var(--text-bright)' }}
-                        >
-                            Start a New Project
-                        </h1>
-                        <p className="text-sm" style={{ color: 'var(--text-dim)' }}>
-                            Name your project and choose a type to get started.
-                        </p>
-                    </div>
-
-                    <form onSubmit={handleSubmit} className="space-y-8">
-                        {/* Project Name */}
-                        <div>
-                            <label
-                                htmlFor="project-name"
-                                className="block text-sm font-medium mb-3"
-                                style={{ color: 'var(--text-bright)' }}
-                            >
-                                Project Name
-                            </label>
-                            <input
-                                id="project-name"
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                placeholder="e.g. My Todo App, E-commerce Store, Portfolio..."
-                                autoFocus
-                                className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                                style={{
-                                    background: 'oklch(0.93 0 0 / 5%)',
-                                    border: '1px solid oklch(0.93 0 0 / 12%)',
-                                    color: 'var(--text-bright)',
-                                    fontFamily: 'Inter',
-                                    transition: 'border-color 0.2s ease',
-                                }}
-                                onFocus={(e) =>
-                                    (e.currentTarget.style.borderColor =
-                                        'oklch(0.55 0.22 264 / 50%)')
-                                }
-                                onBlur={(e) =>
-                                    (e.currentTarget.style.borderColor = 'oklch(0.93 0 0 / 12%)')
-                                }
-                            />
-                        </div>
-
-                        {/* Project Type */}
-                        <div>
-                            <label
-                                className="block text-sm font-medium mb-3"
-                                style={{ color: 'var(--text-bright)' }}
-                            >
-                                Project Type
-                            </label>
-                            <div className="grid grid-cols-2 gap-3">
-                                {PROJECT_TYPES.map((type) => {
-                                    const isSelected = selectedType === type.id;
-                                    return (
-                                        <button
-                                            key={type.id}
-                                            type="button"
-                                            onClick={() => setSelectedType(type.id)}
-                                            className="p-4 rounded-xl text-left"
-                                            style={{
-                                                background: isSelected
-                                                    ? type.colorDim
-                                                    : 'oklch(0.93 0 0 / 4%)',
-                                                border: `1px solid ${
-                                                    isSelected
-                                                        ? type.colorBorder
-                                                        : 'oklch(0.93 0 0 / 10%)'
-                                                }`,
-                                                transition:
-                                                    'background 0.2s ease, border-color 0.2s ease, transform 0.15s ease',
-                                                boxShadow: isSelected
-                                                    ? `0 0 20px -6px ${type.color}40`
-                                                    : 'none',
-                                            }}
-                                            onMouseEnter={(e) => {
-                                                (e.currentTarget as HTMLButtonElement).style.transform =
-                                                    'scale(1.02)';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                (e.currentTarget as HTMLButtonElement).style.transform =
-                                                    'scale(1)';
-                                            }}
-                                        >
-                                            <div
-                                                className="w-9 h-9 rounded-lg flex items-center justify-center mb-3"
-                                                style={{
-                                                    background: isSelected
-                                                        ? type.colorDim
-                                                        : 'oklch(0.93 0 0 / 6%)',
-                                                    color: isSelected
-                                                        ? type.color
-                                                        : 'var(--text-dim)',
-                                                    border: `1px solid ${
-                                                        isSelected
-                                                            ? type.colorBorder
-                                                            : 'oklch(0.93 0 0 / 10%)'
-                                                    }`,
-                                                }}
-                                            >
-                                                {type.icon}
-                                            </div>
-                                            <div
-                                                className="font-semibold text-sm mb-1"
-                                                style={{
-                                                    fontFamily: 'Space Grotesk',
-                                                    color: isSelected
-                                                        ? type.color
-                                                        : 'var(--text-bright)',
-                                                }}
-                                            >
-                                                {type.label}
-                                            </div>
-                                            <div
-                                                className="text-xs leading-relaxed"
-                                                style={{ color: 'var(--text-dim)' }}
-                                            >
-                                                {type.description}
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {/* Actor loading notice */}
-                        {actorLoading && (
-                            <div
-                                className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg"
-                                style={{
-                                    background: 'oklch(0.55 0.22 264 / 10%)',
-                                    border: '1px solid oklch(0.55 0.22 264 / 20%)',
-                                    color: 'var(--text-dim)',
-                                }}
-                            >
-                                <Loader2 size={12} className="animate-spin" />
-                                Connecting to the network…
-                            </div>
-                        )}
-
-                        {/* Submit */}
-                        <button
-                            type="submit"
-                            disabled={isDisabled}
-                            className="w-full btn-primary py-3 text-base justify-center"
-                            style={{
-                                transition:
-                                    'box-shadow 0.25s ease, transform 0.15s ease, opacity 0.2s ease',
-                                opacity: isDisabled ? 0.6 : 1,
-                                cursor: isDisabled ? 'not-allowed' : 'pointer',
-                            }}
-                            onMouseEnter={(e) => {
-                                if (!isDisabled) {
-                                    (e.currentTarget as HTMLButtonElement).style.transform =
-                                        'scale(1.02)';
-                                }
-                            }}
-                            onMouseLeave={(e) => {
-                                (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
-                            }}
-                        >
-                            {createSession.isPending ? (
-                                <>
-                                    <Loader2 size={18} className="animate-spin" />
-                                    Creating Session...
-                                </>
-                            ) : actorLoading ? (
-                                <>
-                                    <Loader2 size={18} className="animate-spin" />
-                                    Connecting...
-                                </>
-                            ) : (
-                                <>
-                                    <Sparkles size={18} />
-                                    Create Project
-                                    <ArrowRight size={16} />
-                                </>
-                            )}
-                        </button>
-                    </form>
-                </div>
-            </main>
+      {/* Header — sticky only, no relative */}
+      <header className="sticky top-0 z-10 flex items-center justify-between px-6 md:px-12 py-5 border-b border-border/50 backdrop-blur-sm bg-background/80">
+        <button
+          onClick={() => navigate({ to: '/' })}
+          className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+        >
+          <img src="/assets/generated/noventra-logo-icon.dim_128x128.png" alt="Noventra.Ai" className="w-8 h-8 rounded-lg" />
+          <span className="font-display font-bold text-xl gradient-text">Noventra.Ai</span>
+        </button>
+        <div className="flex items-center gap-3">
+          <LoginButton compact />
         </div>
-    );
+      </header>
+
+      <main className="relative z-10 max-w-2xl mx-auto px-6 py-12">
+        {/* Back button */}
+        <button
+          onClick={() => navigate({ to: '/sessions' })}
+          className="flex items-center gap-2 text-text-muted hover:text-text text-sm mb-8 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Sessions
+        </button>
+
+        <div className="glass-card rounded-2xl p-8 border border-border">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-cyan-500/20 border border-indigo-500/20 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-indigo-400" />
+            </div>
+            <div>
+              <h1 className="font-display text-2xl font-bold">New Session</h1>
+              <p className="text-text-muted text-sm">Configure your AI project</p>
+            </div>
+          </div>
+
+          {!identity ? (
+            <div className="text-center py-8">
+              <p className="text-text-muted mb-4">Please login to create a session.</p>
+              <LoginButton />
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Project name */}
+              <div>
+                <label className="block text-sm font-medium text-text-muted mb-2">
+                  Project Name
+                </label>
+                <input
+                  type="text"
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value)}
+                  placeholder="e.g. My Awesome SaaS"
+                  className="w-full px-4 py-3 bg-surface-2 border border-border rounded-xl text-text placeholder:text-text-muted focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-all"
+                  maxLength={80}
+                  autoFocus
+                />
+              </div>
+
+              {/* Project type */}
+              <div>
+                <label className="block text-sm font-medium text-text-muted mb-3">
+                  Project Type
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {projectTypes.map((type) => (
+                    <button
+                      key={type.id}
+                      type="button"
+                      onClick={() => setSelectedType(type.id)}
+                      className={`flex items-start gap-3 p-4 rounded-xl border text-left transition-all duration-200 ${
+                        selectedType === type.id
+                          ? `${type.borderColor} ${type.bgColor}`
+                          : 'border-border hover:border-border/80 bg-surface-2/50 hover:bg-surface-2'
+                      }`}
+                    >
+                      <div className={`mt-0.5 ${type.color}`}>{type.icon}</div>
+                      <div>
+                        <div className={`font-semibold text-sm ${selectedType === type.id ? type.color : 'text-text'}`}>
+                          {type.label}
+                        </div>
+                        <div className="text-text-muted text-xs mt-0.5 leading-relaxed">{type.desc}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Submit */}
+              <button
+                type="submit"
+                disabled={createSession.isPending || actorLoading || !projectName.trim()}
+                className="w-full btn-primary py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {createSession.isPending || actorLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>{actorLoading ? 'Connecting...' : 'Creating...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    <span>Create Session</span>
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-border/30 px-6 md:px-12 py-6 mt-8">
+        <div className="max-w-2xl mx-auto flex items-center justify-center">
+          <p className="text-text-muted text-sm flex items-center gap-1.5">
+            Built with <Heart className="w-3.5 h-3.5 text-indigo-400 fill-indigo-400" /> using{' '}
+            <a
+              href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-cyan-400 hover:text-cyan-300 transition-colors"
+            >
+              caffeine.ai
+            </a>
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
 }

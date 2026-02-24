@@ -1,58 +1,55 @@
-import { createRouter, RouterProvider, createRoute, createRootRoute, Outlet } from '@tanstack/react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { RouterProvider, createRouter, createRoute, createRootRoute, Outlet } from '@tanstack/react-router';
 import { Toaster } from '@/components/ui/sonner';
-import HomePage from '@/pages/HomePage';
-import SessionsPage from '@/pages/SessionsPage';
-import NewSessionPage from '@/pages/NewSessionPage';
-import ChatPage from '@/pages/ChatPage';
+import { ThemeProvider } from 'next-themes';
+import HomePage from './pages/HomePage';
+import SessionsPage from './pages/SessionsPage';
+import NewSessionPage from './pages/NewSessionPage';
+import ChatPage from './pages/ChatPage';
+import ProfileSetup from './components/ProfileSetup';
 
-const rootRoute = createRootRoute({
-    component: () => (
-        <>
-            <Outlet />
-            <Toaster richColors position="top-right" theme="dark" />
-        </>
-    ),
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 30_000,
+    },
+  },
 });
 
-const homeRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/',
-    component: HomePage,
-});
+function RootLayout() {
+  return (
+    <>
+      <Outlet />
+      <ProfileSetup />
+    </>
+  );
+}
 
-const sessionsRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/sessions',
-    component: SessionsPage,
-});
+const rootRoute = createRootRoute({ component: RootLayout });
 
-const newSessionRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/sessions/new',
-    component: NewSessionPage,
-});
+const homeRoute = createRoute({ getParentRoute: () => rootRoute, path: '/', component: HomePage });
+const sessionsRoute = createRoute({ getParentRoute: () => rootRoute, path: '/sessions', component: SessionsPage });
+const newSessionRoute = createRoute({ getParentRoute: () => rootRoute, path: '/sessions/new', component: NewSessionPage });
+const chatRoute = createRoute({ getParentRoute: () => rootRoute, path: '/sessions/$sessionId/chat', component: ChatPage });
 
-const chatRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/sessions/$sessionId/chat',
-    component: ChatPage,
-});
-
-const routeTree = rootRoute.addChildren([
-    homeRoute,
-    sessionsRoute,
-    newSessionRoute,
-    chatRoute,
-]);
+const routeTree = rootRoute.addChildren([homeRoute, sessionsRoute, newSessionRoute, chatRoute]);
 
 const router = createRouter({ routeTree });
 
 declare module '@tanstack/react-router' {
-    interface Register {
-        router: typeof router;
-    }
+  interface Register {
+    router: typeof router;
+  }
 }
 
 export default function App() {
-    return <RouterProvider router={router} />;
+  return (
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+        <Toaster position="bottom-right" theme="dark" />
+      </QueryClientProvider>
+    </ThemeProvider>
+  );
 }

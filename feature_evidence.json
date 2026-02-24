@@ -2,10 +2,20 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-landing-page-project-type-flow-so-that-when-a-user-selects-landing-page-in-newsessionpage-and-sends-a-message-in-chatpage-the-llmservice-returns-a-complete-working-landing-page-scaffold-html-structure-hero-section-features-cta-and-styles-instead-of-failing-silently-or-producing-no-output",
-      "featureTitle": "Fix the landing page project type flow so that when a user selects 'Landing Page' in NewSessionPage and sends a message in ChatPage, the llmService returns a complete, working landing page scaffold (HTML structure, hero section, features, CTA, and styles) instead of failing silently or producing no output.",
+      "featureId": "feature-rebuild-the-complete-noventra-ai-landing-page-generator-application-from-scratch-as-a-fresh-project-preserving-all-existing-functionality-session-management-create-list-delete-sessions-chat-interface-with-ai-assistant-landing-page-html-css-scaffold-generation-and-live-preview-of-generated-landing-pages",
+      "featureTitle": "Rebuild the complete Noventra.Ai landing page generator application from scratch as a fresh project, preserving all existing functionality: session management (create, list, delete sessions), chat interface with AI assistant, landing page HTML/CSS scaffold generation, and live preview of generated landing pages.",
       "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/CodeBlock.tsx",
+        "frontend/src/components/LivePreview.tsx",
+        "frontend/src/components/LoginButton.tsx",
+        "frontend/src/components/MessageBubble.tsx",
+        "frontend/src/components/ProfileSetup.tsx",
+        "frontend/src/hooks/useQueries.ts",
         "frontend/src/pages/ChatPage.tsx",
+        "frontend/src/pages/HomePage.tsx",
+        "frontend/src/pages/NewSessionPage.tsx",
+        "frontend/src/pages/SessionsPage.tsx",
         "frontend/src/services/llmService.ts"
       ],
       "components": [
@@ -14,7 +24,9 @@
         "shadcn-ui@1.0.0",
         "build-template-react@1.0.0",
         "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0",
+        "http-outcalls@3.0.0"
       ],
       "testIds": [
         "REQ-1"
@@ -22,10 +34,18 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-ensure-the-landing-page-template-in-llmservice-ts-generates-a-visually-polished-scaffold-that-matches-noventra-ai-s-dark-theme-oklch-color-tokens-glassmorphism-space-grotesk-font-and-includes-sections-hero-features-how-it-works-and-cta-with-appropriate-copy-about-noventra-ai-building-any-project-app",
-      "featureTitle": "Ensure the landing page template in llmService.ts generates a visually polished scaffold that matches Noventra.Ai's dark theme (OKLCH color tokens, glassmorphism, Space Grotesk font) and includes sections: Hero, Features, How It Works, and CTA with appropriate copy about Noventra.Ai building any project app.",
+      "featureId": "feature-preserve-the-existing-dark-theme-design-system-space-grotesk-inter-jetbrains-mono-typography-oklch-color-tokens-glassmorphism-card-styles-glow-effects-and-the-overall-noventra-ai-visual-identity-across-all-pages-home-sessions-new-session-chat",
+      "featureTitle": "Preserve the existing dark theme design system: Space Grotesk / Inter / JetBrains Mono typography, OKLCH color tokens, glassmorphism card styles, glow effects, and the overall Noventra.Ai visual identity across all pages (Home, Sessions, New Session, Chat).",
       "files": [
-        "frontend/src/services/llmService.ts"
+        "frontend/src/components/LivePreview.tsx",
+        "frontend/src/components/LoginButton.tsx",
+        "frontend/src/components/ProfileSetup.tsx",
+        "frontend/src/index.css",
+        "frontend/src/pages/ChatPage.tsx",
+        "frontend/src/pages/HomePage.tsx",
+        "frontend/src/pages/NewSessionPage.tsx",
+        "frontend/src/pages/SessionsPage.tsx",
+        "frontend/tailwind.config.js"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -33,7 +53,9 @@
         "shadcn-ui@1.0.0",
         "build-template-react@1.0.0",
         "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0",
+        "http-outcalls@3.0.0"
       ],
       "testIds": [
         "REQ-2"

@@ -1,15 +1,20 @@
-import Array "mo:core/Array";
 import List "mo:core/List";
 import Map "mo:core/Map";
 import Principal "mo:core/Principal";
 import Text "mo:core/Text";
 import Runtime "mo:core/Runtime";
 import Time "mo:core/Time";
-import Iter "mo:core/Iter";
 import MixinStorage "blob-storage/Mixin";
+import MixinAuthorization "authorization/MixinAuthorization";
+import AccessControl "authorization/access-control";
+import Migration "migration";
 
+(with migration = Migration.run)
 actor {
   include MixinStorage();
+
+  let accessControlState = AccessControl.initState();
+  include MixinAuthorization(accessControlState);
 
   let sessionMap = Map.empty<Text, SessionData>();
 
@@ -24,7 +29,6 @@ actor {
     timestamp : Int;
   };
 
-  // Internal var-typed persistent session
   type SessionData = {
     id : Text;
     name : Text;
@@ -36,7 +40,6 @@ actor {
     owner : Principal;
   };
 
-  // Immutable view type for public API
   type SessionView = {
     id : Text;
     name : Text;
@@ -47,6 +50,12 @@ actor {
     updatedAt : Int;
     owner : Principal;
   };
+
+  public type UserProfile = {
+    name : Text;
+  };
+
+  let userProfiles = Map.empty<Principal, UserProfile>();
 
   func toView(session : SessionData) : SessionView {
     {
@@ -61,7 +70,31 @@ actor {
     };
   };
 
+  public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can get profiles");
+    };
+    userProfiles.get(caller);
+  };
+
+  public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
+    if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Can only view your own profile");
+    };
+    userProfiles.get(user);
+  };
+
+  public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can save profiles");
+    };
+    userProfiles.add(caller, profile);
+  };
+
   public shared ({ caller }) func createSession(name : Text, projectType : Text) : async Text {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can create sessions");
+    };
     let sessionId = name.concat("_").concat(Time.now().toText());
     let newSession : SessionData = {
       id = sessionId;
@@ -73,12 +106,14 @@ actor {
       updatedAt = Time.now();
       owner = caller;
     };
-
     sessionMap.add(sessionId, newSession);
     sessionId;
   };
 
   public query ({ caller }) func getSessions() : async [SessionView] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can list sessions");
+    };
     let filteredIter = sessionMap.entries().filter(
       func((_, sessionData)) {
         sessionData.owner == caller;
@@ -88,6 +123,9 @@ actor {
   };
 
   public query ({ caller }) func getSession(sessionId : Text) : async SessionView {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can get sessions");
+    };
     switch (sessionMap.get(sessionId)) {
       case (null) { Runtime.trap("Session not found") };
       case (?session) {
@@ -98,6 +136,9 @@ actor {
   };
 
   public shared ({ caller }) func addMessage(sessionId : Text, role : Text, content : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can add messages");
+    };
     switch (sessionMap.get(sessionId)) {
       case (null) { Runtime.trap("Session not found") };
       case (?session) {
@@ -124,6 +165,9 @@ actor {
   };
 
   public shared ({ caller }) func updateFiles(sessionId : Text, filename : Text, content : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can update files");
+    };
     switch (sessionMap.get(sessionId)) {
       case (null) { Runtime.trap("Session not found") };
       case (?session) {
@@ -149,9 +193,15 @@ actor {
   };
 
   public shared ({ caller }) func deleteSession(sessionId : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can delete sessions");
+    };
     switch (sessionMap.get(sessionId)) {
       case (null) { Runtime.trap("Session not found") };
-      case (?_) {
+      case (?session) {
+        if (session.owner != caller and not AccessControl.isAdmin(accessControlState, caller)) {
+          Runtime.trap("Access denied: You can only delete your own sessions");
+        };
         sessionMap.remove(sessionId);
       };
     };

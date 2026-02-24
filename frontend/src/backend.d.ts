@@ -7,14 +7,14 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
+export interface FileData {
+    content: string;
+    filename: string;
+}
 export interface Message {
     content: string;
     role: string;
     timestamp: bigint;
-}
-export interface FileData {
-    content: string;
-    filename: string;
 }
 export interface SessionView {
     id: string;
@@ -26,11 +26,25 @@ export interface SessionView {
     createdAt: bigint;
     updatedAt: bigint;
 }
+export interface UserProfile {
+    name: string;
+}
+export enum UserRole {
+    admin = "admin",
+    user = "user",
+    guest = "guest"
+}
 export interface backendInterface {
     addMessage(sessionId: string, role: string, content: string): Promise<void>;
+    assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     createSession(name: string, projectType: string): Promise<string>;
     deleteSession(sessionId: string): Promise<void>;
+    getCallerUserProfile(): Promise<UserProfile | null>;
+    getCallerUserRole(): Promise<UserRole>;
     getSession(sessionId: string): Promise<SessionView>;
     getSessions(): Promise<Array<SessionView>>;
+    getUserProfile(user: Principal): Promise<UserProfile | null>;
+    isCallerAdmin(): Promise<boolean>;
+    saveCallerUserProfile(profile: UserProfile): Promise<void>;
     updateFiles(sessionId: string, filename: string, content: string): Promise<void>;
 }

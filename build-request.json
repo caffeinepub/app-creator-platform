@@ -1,59 +1,61 @@
 {
   "kind": "build_request",
-  "title": "Fix landing page generation in llmService and wire it to the app",
-  "projectName": "Noventra.Ai",
+  "title": "Rebuild Noventra.Ai landing page generator as a fresh project",
+  "projectName": "Noventra AI",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix the landing page project type flow so that when a user selects 'Landing Page' in NewSessionPage and sends a message in ChatPage, the llmService returns a complete, working landing page scaffold (HTML structure, hero section, features, CTA, and styles) instead of failing silently or producing no output.",
-      "target": "frontend",
+      "text": "Rebuild the complete Noventra.Ai landing page generator application from scratch as a fresh project, preserving all existing functionality: session management (create, list, delete sessions), chat interface with AI assistant, landing page HTML/CSS scaffold generation, and live preview of generated landing pages.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-recent"
+          "msg-rebuild"
         ],
         "quotes": [
-          "it did work but not able to create landing page"
+          "yes you can do that"
         ]
       },
       "acceptanceCriteria": [
-        "Selecting 'Landing Page' as project type and submitting a prompt in ChatPage produces a non-empty AI response with code files.",
-        "The llmService landing page template returns at least one code file (e.g., index.html or App.tsx) with a complete landing page scaffold.",
-        "The generated response includes a hero section, a features/highlights section, and a call-to-action.",
-        "No console errors or blank responses occur when the landing page project type is used."
+        "Users can create new sessions with a project name and project type selection",
+        "Users can view a list of past sessions with project type icons and timestamps",
+        "Users can delete sessions",
+        "Chat interface displays messages with code block rendering",
+        "AI assistant generates landing page HTML/CSS scaffolds for the 'Landing Page' project type",
+        "Generated landing pages are rendered as a live visual preview within the chat or session view",
+        "Sessions and messages are persisted in the backend",
+        "Backend uses owner-based access control so users only see their own sessions"
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Ensure the landing page template in llmService.ts generates a visually polished scaffold that matches Noventra.Ai's dark theme (OKLCH color tokens, glassmorphism, Space Grotesk font) and includes sections: Hero, Features, How It Works, and CTA with appropriate copy about Noventra.Ai building any project app.",
+      "text": "Preserve the existing dark theme design system: Space Grotesk / Inter / JetBrains Mono typography, OKLCH color tokens, glassmorphism card styles, glow effects, and the overall Noventra.Ai visual identity across all pages (Home, Sessions, New Session, Chat).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-recent"
+          "msg-rebuild"
         ],
         "quotes": [
-          "Make a landing page for noventra.AI informing it is app can make any project app mobile app or landing p..."
+          "yes you can do that"
         ]
       },
       "acceptanceCriteria": [
-        "The landing page template output contains Hero, Features, How It Works, and CTA sections.",
-        "Copy reflects that Noventra.Ai can generate any project type: full-stack apps, mobile apps, and landing pages.",
-        "Styles reference the existing dark theme color tokens and Space Grotesk font.",
-        "The generated scaffold is valid, renderable code."
+        "Dark theme with OKLCH color tokens is applied globally",
+        "Glassmorphism card styles and glow effects are present on interactive elements",
+        "Space Grotesk, Inter, and JetBrains Mono fonts are loaded and used appropriately",
+        "All pages (Home, Sessions, New Session, Chat) are visually consistent with the Noventra.Ai brand"
       ]
     }
   ],
   "constraints": [
-    "Do not modify files under frontend/src/hooks/ (immutable paths).",
-    "Do not modify frontend/src/main.tsx.",
-    "Do not modify frontend/src/components/ui.",
-    "Keep all backend logic in backend/main.mo — no backend changes are needed for this fix."
+    "All Motoko logic must remain in a single main actor (backend/main.mo)",
+    "Do not use the stopped canister wxhw5-jyaaa-aaaam-ahg7a-cai — this is a fresh rebuild to obtain a new canister",
+    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui"
   ],
   "nonGoals": [
-    "Adding external API calls or live AI model integrations to llmService.",
-    "Changing the backend canister or session management logic.",
-    "Modifying the authentication flow.",
-    "Creating a new route or page beyond what already exists."
+    "Migrating or recovering data from the old stopped canister",
+    "Debugging the cycles issue on wxhw5-jyaaa-aaaam-ahg7a-cai",
+    "Adding new features beyond what existed in Version 5"
   ],
   "imageRequirements": {
     "required": [],

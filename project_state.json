@@ -1,38 +1,36 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Noventra.Ai app project — backend canister infrastructure issues resolved via redeploy; user now requesting landing page creation feature.",
-  "architectural_notes": [],
-  "known_issues": [],
-  "isFixRequest": false,
+  "summary": "Landing page generator app with live preview feature. Recurring canister stopping issue with wxhw5-jyaaa-aaaam-ahg7a-cai; rebuilding as fresh project to get a new canister assigned.",
+  "architectural_notes": [
+    "App is deployed on DFINITY/ICP infrastructure using canisters. Canister wxhw5-jyaaa-aaaam-ahg7a-cai repeatedly stops after deployment, likely due to insufficient cycles.",
+    "Rebuilding as a fresh project to obtain a new canister assignment and avoid the stopped canister issue."
+  ],
+  "known_issues": [
+    "Canister wxhw5-jyaaa-aaaam-ahg7a-cai keeps stopping after deployment (Reject code 5), suspected cycles issue."
+  ],
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-fix-the-landing-page-project-type-flow-so-that-when-a-user-selects-landing-page-in-newsessionpage-and-sends-a-message-in-chatpage-the-llmservice-returns-a-complete-working-landing-page-scaffold-html-structure-hero-section-features-cta-and-styles-instead-of-failing-silently-or-producing-no-output",
-      "title": "Fix the landing page project type flow so that when a user selects 'Landing Page' in NewSessionPage and sends a message in ChatPage, the llmService returns a complete, working landing page scaffold (HTML structure, hero section, features, CTA, and styles) instead of failing silently or producing no output.",
+      "id": "feature-rebuild-the-complete-noventra-ai-landing-page-generator-application-from-scratch-as-a-fresh-project-preserving-all-existing-functionality-session-management-create-list-delete-sessions-chat-interface-with-ai-assistant-landing-page-html-css-scaffold-generation-and-live-preview-of-generated-landing-pages",
+      "title": "Rebuild the complete Noventra.Ai landing page generator application from scratch as a fresh project, preserving all existing functionality: session management (create, list, delete sessions), chat interface with AI assistant, landing page HTML/CSS scaffold generation, and live preview of generated landing pages.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-ensure-the-landing-page-template-in-llmservice-ts-generates-a-visually-polished-scaffold-that-matches-noventra-ai-s-dark-theme-oklch-color-tokens-glassmorphism-space-grotesk-font-and-includes-sections-hero-features-how-it-works-and-cta-with-appropriate-copy-about-noventra-ai-building-any-project-app",
-      "title": "Ensure the landing page template in llmService.ts generates a visually polished scaffold that matches Noventra.Ai's dark theme (OKLCH color tokens, glassmorphism, Space Grotesk font) and includes sections: Hero, Features, How It Works, and CTA with appropriate copy about Noventra.Ai building any project app.",
+      "id": "feature-preserve-the-existing-dark-theme-design-system-space-grotesk-inter-jetbrains-mono-typography-oklch-color-tokens-glassmorphism-card-styles-glow-effects-and-the-overall-noventra-ai-visual-identity-across-all-pages-home-sessions-new-session-chat",
+      "title": "Preserve the existing dark theme design system: Space Grotesk / Inter / JetBrains Mono typography, OKLCH color tokens, glassmorphism card styles, glow effects, and the overall Noventra.Ai visual identity across all pages (Home, Sessions, New Session, Chat).",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     }
   ],
-  "new_feature_requests": [
-    {
-      "id": "AR-1",
-      "summary": "Create a landing page for the Noventra.Ai app",
-      "reqIds": [],
-      "status": "pending"
-    }
-  ],
+  "new_feature_requests": [],
   "gameProjectType": "none",
-  "projectName": "Noventra.Ai",
+  "projectName": "Noventra AI",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

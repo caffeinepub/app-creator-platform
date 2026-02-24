@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-24T21:35:53.191Z",
+  "generatedAt": "2026-02-24T21:56:06.604Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -12,37 +12,97 @@
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Fix the landing page project type flow so that when a user selects 'Landing Page' in NewSessionPage and sends a message in ChatPage, the llmService returns a complete, working landing page scaffold (HTML structure, hero section, features, CTA, and styles) instead of failing silently or producing no output.",
+        "summary": "Rebuild the complete Noventra.Ai landing page generator application from scratch as a fresh project, preserving all existing functionality: session management (create, list, delete sessions), chat interface with AI assistant, landing page HTML/CSS scaffold generation, and live preview of generated landing pages.",
         "status": "implemented",
         "plannedFiles": [
+          "frontend/src/pages/HomePage.tsx",
+          "frontend/src/pages/SessionsPage.tsx",
+          "frontend/src/pages/NewSessionPage.tsx",
+          "frontend/src/pages/ChatPage.tsx",
+          "frontend/src/components/MessageBubble.tsx",
+          "frontend/src/components/CodeBlock.tsx",
+          "frontend/src/components/LivePreview.tsx",
+          "frontend/src/components/LoginButton.tsx",
+          "frontend/src/components/ProfileSetup.tsx",
+          "frontend/src/hooks/useQueries.ts",
           "frontend/src/services/llmService.ts",
-          "frontend/src/pages/ChatPage.tsx"
+          "frontend/src/App.tsx"
         ],
         "matchedFiles": [
+          "frontend/src/pages/HomePage.tsx",
+          "frontend/src/pages/SessionsPage.tsx",
+          "frontend/src/pages/NewSessionPage.tsx",
+          "frontend/src/pages/ChatPage.tsx",
+          "frontend/src/components/MessageBubble.tsx",
+          "frontend/src/components/CodeBlock.tsx",
+          "frontend/src/components/LivePreview.tsx",
+          "frontend/src/components/LoginButton.tsx",
+          "frontend/src/components/ProfileSetup.tsx",
+          "frontend/src/hooks/useQueries.ts",
           "frontend/src/services/llmService.ts",
-          "frontend/src/pages/ChatPage.tsx"
+          "frontend/src/App.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Ensure the landing page template in llmService.ts generates a visually polished scaffold that matches Noventra.Ai's dark theme (OKLCH color tokens, glassmorphism, Space Grotesk font) and includes sections: Hero, Features, How It Works, and CTA with appropriate copy about Noventra.Ai building any project app.",
+        "summary": "Preserve the existing dark theme design system: Space Grotesk / Inter / JetBrains Mono typography, OKLCH color tokens, glassmorphism card styles, glow effects, and the overall Noventra.Ai visual identity across all pages (Home, Sessions, New Session, Chat).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/services/llmService.ts"
+          "frontend/src/index.css",
+          "frontend/tailwind.config.js",
+          "frontend/src/pages/HomePage.tsx",
+          "frontend/src/pages/SessionsPage.tsx",
+          "frontend/src/pages/NewSessionPage.tsx",
+          "frontend/src/pages/ChatPage.tsx",
+          "frontend/src/components/LivePreview.tsx",
+          "frontend/src/components/LoginButton.tsx",
+          "frontend/src/components/ProfileSetup.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/services/llmService.ts"
+          "frontend/src/index.css",
+          "frontend/tailwind.config.js",
+          "frontend/src/pages/HomePage.tsx",
+          "frontend/src/pages/SessionsPage.tsx",
+          "frontend/src/pages/NewSessionPage.tsx",
+          "frontend/src/pages/ChatPage.tsx",
+          "frontend/src/components/LivePreview.tsx",
+          "frontend/src/components/LoginButton.tsx",
+          "frontend/src/components/ProfileSetup.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
+    "backend/authorization/MixinAuthorization.mo",
+    "backend/authorization/access-control.mo",
+    "backend/http-outcalls/outcall.mo",
+    "backend/main.mo",
+    "backend/migration.mo",
     "build-request.json",
+    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/src/App.tsx",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/components/CodeBlock.tsx",
+    "frontend/src/components/LivePreview.tsx",
+    "frontend/src/components/LoginButton.tsx",
+    "frontend/src/components/MessageBubble.tsx",
+    "frontend/src/components/ProfileSetup.tsx",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useActor.ts",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/index.css",
     "frontend/src/pages/ChatPage.tsx",
+    "frontend/src/pages/HomePage.tsx",
+    "frontend/src/pages/NewSessionPage.tsx",
+    "frontend/src/pages/SessionsPage.tsx",
     "frontend/src/services/llmService.ts",
+    "frontend/src/utils/urlParams.ts",
+    "frontend/tailwind.config.js",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",
