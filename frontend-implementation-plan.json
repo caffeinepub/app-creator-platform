@@ -1,0 +1,61 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Fix session creation failure and remove localhost references from AI responses",
+  "requirements": [
+    {
+      "id": "REQ-11",
+      "summary": "Fix the 'Failed to create session. Please try again.' error on the New Session page by auditing and correcting the frontend createSession hook call",
+      "acceptanceCriteria": [
+        "Submitting the New Session form with a project name and project type creates a session in the backend without throwing an error.",
+        "After successful creation, the user is navigated to the Chat page for the new session.",
+        "The error toast 'Failed to create session. Please try again.' no longer appears on valid submissions.",
+        "Existing sessions are unaffected and still load correctly on the Sessions dashboard."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Audit the useCreateSession mutation hook to ensure it correctly calls the backend createSession method with the exact arguments expected by the backend interface (name: string, projectType: string). Verify the mutation function passes these arguments in the correct order and type. Ensure error handling properly catches and reports any backend failures."
+        },
+        {
+          "path": "frontend/src/pages/NewSessionPage.tsx",
+          "operation": "modify",
+          "description": "Review the form submission handler to ensure it correctly invokes the createSession mutation with the project name and selected project type. Verify that after successful session creation, the navigation to the Chat page uses the returned session ID. Add console logging to debug the exact arguments being passed to createSession and any errors returned."
+        }
+      ]
+    },
+    {
+      "id": "REQ-12",
+      "summary": "Remove all localhost URL references from the pre-built template responses in llmService.ts",
+      "acceptanceCriteria": [
+        "No template response in llmService.ts contains the string 'localhost' or '127.0.0.1'.",
+        "Getting Started instructions in generated responses remain helpful but do not reference a specific local URL.",
+        "All four project type templates (fullstack, mobile, landing page, custom) are checked and cleaned."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/services/llmService.ts",
+          "operation": "modify",
+          "description": "Remove all references to 'localhost:5173', 'localhost', and '127.0.0.1' from all template response generators (generateFullStackResponse, generateMobileResponse, generateLandingPageResponse, and any custom project templates). Replace instructions that mention opening a localhost URL with generic guidance such as 'Follow the Getting Started steps in your local development environment' or 'Run the development server and open the application in your browser'. Ensure all four project type templates are updated."
+        }
+      ]
+    },
+    {
+      "id": "REQ-13",
+      "summary": "Fix navigation links on the Home landing page to use React Router paths without hardcoded localhost URLs",
+      "acceptanceCriteria": [
+        "Clicking 'My Sessions' in the navigation bar routes to /sessions without a localhost redirect.",
+        "Clicking 'Start New Project' routes to /sessions/new without a localhost redirect.",
+        "All navigation works correctly in the deployed Caffeine preview environment (not just localhost)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/HomePage.tsx",
+          "operation": "modify",
+          "description": "Audit all navigation links and CTA buttons ('My Sessions', 'Start New Project') to ensure they use React Router's Link component or useNavigate hook with relative paths (/sessions, /sessions/new) instead of any hardcoded absolute URLs containing localhost. Verify no anchor tags with href attributes pointing to localhost URLs exist. Ensure all navigation elements use proper React Router navigation methods."
+        }
+      ]
+    }
+  ]
+}

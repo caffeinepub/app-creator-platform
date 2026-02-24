@@ -1,0 +1,44 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-fix-the-failed-to-create-session-please-try-again-error-on-the-new-session-page-the-createsession-backend-call-is-failing-audit-the-motoko-actor-s-createsession-function-and-the-frontend-usequeries-ts-hook-that-calls-it-to-identify-and-resolve-the-mismatch-e-g-argument-shape-principal-handling-or-stable-variable-initialization-the-new-session-form-must-successfully-create-a-session-and-navigate-to-the-chat-page-without-errors",
+      "featureTitle": "Fix the 'Failed to create session. Please try again.' error on the New Session page. The createSession backend call is failing — audit the Motoko actor's createSession function and the frontend useQueries.ts hook that calls it to identify and resolve the mismatch (e.g. argument shape, principal handling, or stable variable initialization). The New Session form must successfully create a session and navigate to the Chat page without errors.",
+      "files": [
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/NewSessionPage.tsx"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-11"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-remove-all-localhost-url-references-from-the-pre-built-template-responses-in-frontend-src-services-llmservice-ts-template-responses-must-not-instruct-users-to-open-localhost-5173-or-any-localhost-127-0-0-1-url-replace-any-such-instructions-with-a-note-that-the-project-is-ready-to-use-and-the-user-can-follow-the-getting-started-steps-in-their-local-environment-without-mentioning-a-specific-localhost-address",
+      "featureTitle": "Remove all localhost URL references from the pre-built template responses in frontend/src/services/llmService.ts. Template responses must not instruct users to open localhost:5173 or any localhost/127.0.0.1 URL. Replace any such instructions with a note that the project is ready to use and the user can follow the Getting Started steps in their local environment, without mentioning a specific localhost address.",
+      "files": [
+        "frontend/src/services/llmService.ts"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-12"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

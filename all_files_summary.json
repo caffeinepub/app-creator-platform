@@ -1,0 +1,23 @@
+{
+  "backend/main.mo": "Motoko actor implementing session management with CRUD operations (createSession, getSessions, getSession, addMessage, updateFiles) using a Map-based store and owner-based access control. Includes MixinStorage and exposes immutable SessionView types for the public API.",
+  "feature_evidence.json": "Feature evidence report listing two high-confidence features: fixing the createSession backend/frontend mismatch error, and removing localhost URL references from llmService.ts template responses.",
+  "frontend-file-summaries.txt": "JSON document containing one-line summaries for each frontend source file, describing their purpose and notable changes such as framer-motion removal, localhost URL cleanup, and actor readiness fixes.",
+  "frontend/index.css": "Global dark-theme stylesheet for Noventra.Ai defining OKLCH color tokens, Space Grotesk/Inter/JetBrains Mono font imports, glassmorphism utilities, glow effects, terminal chrome styles, and animation keyframes via Tailwind layers.",
+  "frontend/index.html": "Minimal HTML entry point for the Noventra.Ai Vite/React app, mounting the React root into a div and loading main.tsx as an ES module.",
+  "frontend/src/App.tsx": "Root React component that configures TanStack Router with four routes (Home, Sessions, New Session, Chat) and renders a dark-themed Sonner Toaster.",
+  "frontend/src/components/CodeBlock.tsx": "Reusable code block component with macOS-style terminal chrome, optional filename/language label, clipboard copy button with confirmation state, and JetBrains Mono styled pre/code display.",
+  "frontend/src/components/MessageBubble.tsx": "Chat message renderer that parses fenced code blocks (with optional filename tags) from assistant content and renders them via CodeBlock, with CSS-based slide-in animation on mount using useEffect and requestAnimationFrame.",
+  "frontend/src/hooks/useActor.ts": "Custom hook that creates and caches an ICP actor (authenticated or anonymous) using React Query, and invalidates dependent queries whenever the actor changes.",
+  "frontend/src/hooks/useInternetIdentity.ts": "Provides an InternetIdentityProvider and useInternetIdentity hook for managing ICP Internet Identity authentication state, including login, logout, and identity persistence via AuthClient.",
+  "frontend/src/hooks/useQueries.ts": "Defines React Query hooks for backend interactions: fetching sessions, fetching a single session, and mutations for creating/deleting sessions, adding messages, and updating files.",
+  "frontend/src/index.css": "Global stylesheet that imports fonts, configures Tailwind, and defines a dark-theme design system with OKLCH CSS variables, glassmorphism utilities, and glow effects.",
+  "frontend/src/main.tsx": "Application entry point that mounts the React app wrapped with QueryClientProvider and InternetIdentityProvider.",
+  "frontend/src/pages/ChatPage.tsx": "Chat interface page for a coding session that displays messages, handles user input, calls an LLM service to generate AI responses, and persists messages and generated files to the backend.",
+  "frontend/src/pages/Home.tsx": "Empty file with no content.",
+  "frontend/src/pages/HomePage.tsx": "Marketing landing page for Noventra.Ai that showcases features, stats, and navigation, with animated fade-in sections and background glow effects.",
+  "frontend/src/pages/NewSessionPage.tsx": "React page for creating a new coding session, allowing users to enter a project name and select a project type (custom, fullstack, mobile, landing) before submitting to create a session via the backend.",
+  "frontend/src/pages/SessionsPage.tsx": "React page displaying a dashboard of all saved coding sessions as cards with project type icons, message/file counts, and delete functionality, plus navigation to create new sessions.",
+  "frontend/src/services/llmService.ts": "Template-based LLM service that generates predefined multi-file code scaffolds (fullstack, mobile, landing page, etc.) without making external API calls, returning formatted markdown with embedded file code blocks.",
+  "frontend/tailwind.config.js": "Tailwind CSS configuration defining custom design tokens including dark surface colors, indigo/cyan palette, custom fonts (Space Grotesk, Inter, JetBrains Mono), and extended border radius, with typography, container-queries, and animate plugins.",
+  "project_state.json": "Project state metadata file tracking the Noventra.Ai platform's version, architectural notes, known issues, and a list of implemented features for build planning and continuity."
+}

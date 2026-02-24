@@ -1,0 +1,136 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 7,
+  "summary": "Noventra.Ai - Personal AI coding agent platform. Features a chat-based interface for generating full-stack apps, mobile apps, and landing pages. User chose template-based outputs (Option B) instead of live AI calls, to avoid requiring an API key. Includes session management, multi-file project generation, file extraction from AI responses, and download functionality. No Emergent branding in UI or generated outputs. Built with React frontend, FastAPI backend, MongoDB.",
+  "architectural_notes": [
+    "Backend uses session-based LLM chat (LlmChat) with in-memory active_sessions dict; sessions persisted in MongoDB",
+    "System prompts explicitly instruct AI never to mention Emergent branding",
+    "File extraction uses regex to parse code blocks with filename paths from AI responses",
+    "Emergent badge hidden via CSS display:none in index.html; title updated to Noventra.Ai",
+    "AI generation uses template-based responses (no live LLM API calls) to avoid API key requirements"
+  ],
+  "known_issues": [
+    "Preview proxy shows 'Preview Unavailable' due to caching but app confirmed working via testing agent and curl",
+    "OpenAI API key was accidentally shared in chat — user advised to revoke it immediately at platform.openai.com/account/api-keys",
+    "Landing page redirects to localhost causing errors — likely hardcoded localhost URL in navigation or redirect logic"
+  ],
+  "isFixRequest": true,
+  "existing_features": [
+    {
+      "id": "feature-build-a-personal-ai-coding-assistant-application-named-noventra-ai-on-the-internet-computer-the-app-must-include-a-react-frontend-with-a-dark-futuristic-ui-space-grotesk-headings-inter-body-jetbrains-mono-for-code-indigo-cyan-palette-on-a-near-black-background-glassmorphism-cards-and-a-motoko-backend-that-stores-sessions-and-generated-project-data-in-stable-memory-so-state-persists-across-upgrades",
+      "title": "Build a personal AI coding assistant application named 'Noventra.Ai' on the Internet Computer. The app must include a React frontend with a dark futuristic UI (Space Grotesk headings, Inter body, JetBrains Mono for code, indigo/cyan palette on a near-black background, glassmorphism cards) and a Motoko backend that stores sessions and generated project data in stable memory so state persists across upgrades.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-home-landing-page-branded-noventra-ai-elite-ai-coding-agent-the-page-must-include-a-navigation-bar-with-the-noventra-ai-name-and-a-my-sessions-link-a-hero-section-with-headline-sub-headline-and-a-start-new-project-cta-button-a-features-grid-highlighting-multi-file-generation-session-persistence-and-template-types-and-a-stats-row-the-browser-tab-title-must-read-noventra-ai-elite-ai-coding-agent-no-emergent-references-anywhere",
+      "title": "Implement a Home landing page branded 'Noventra.Ai — Elite AI Coding Agent'. The page must include: a navigation bar with the Noventra.Ai name and a 'My Sessions' link, a hero section with headline, sub-headline, and a 'Start New Project' CTA button, a features grid highlighting multi-file generation, session persistence, and template types, and a stats row. The browser tab title must read 'Noventra.Ai | Elite AI Coding Agent'. No Emergent references anywhere.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-sessions-dashboard-page-that-lists-all-saved-coding-sessions-stored-in-the-motoko-backend-each-session-card-must-display-project-name-project-type-custom-fullstack-mobile-landing-message-count-file-count-and-last-updated-date-provide-a-delete-button-per-card-and-a-new-project-button-that-opens-the-session-creation-flow-show-an-empty-state-when-no-sessions-exist",
+      "title": "Implement a Sessions dashboard page that lists all saved coding sessions stored in the Motoko backend. Each session card must display project name, project type (custom / fullstack / mobile / landing), message count, file count, and last-updated date. Provide a Delete button per card and a New Project button that opens the session creation flow. Show an empty state when no sessions exist.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-session-creation-flow-a-modal-or-dedicated-page-where-the-user-enters-a-project-name-and-selects-a-project-type-custom-full-stack-app-mobile-app-landing-page-on-confirmation-create-a-new-session-record-in-the-motoko-backend-and-navigate-to-the-chat-interface-for-that-session",
+      "title": "Implement a session creation flow: a modal or dedicated page where the user enters a project name and selects a project type (Custom, Full-Stack App, Mobile App, Landing Page). On confirmation, create a new session record in the Motoko backend and navigate to the Chat Interface for that session.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-chat-interface-page-that-loads-the-session-s-message-history-from-the-motoko-backend-and-allows-the-user-to-send-new-messages-ai-responses-must-be-rendered-with-syntax-highlighted-code-blocks-using-react-syntax-highlighter-with-the-vscdarkplus-theme-and-a-mac-style-terminal-window-chrome-three-colored-dots-each-ai-response-must-be-parsed-for-fenced-code-blocks-tagged-with-a-filename-e-g-filename-src-app-tsx-and-those-files-saved-to-the-session-record-in-the-backend",
+      "title": "Implement a Chat Interface page that loads the session's message history from the Motoko backend and allows the user to send new messages. AI responses must be rendered with syntax-highlighted code blocks using react-syntax-highlighter with the vscDarkPlus theme and a mac-style terminal window chrome (three colored dots). Each AI response must be parsed for fenced code blocks tagged with a filename (e.g. filename: src/App.tsx) and those files saved to the session record in the backend.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-download-all-files-feature-in-the-chat-interface-header-when-clicked-assemble-all-files-stored-in-the-current-session-into-a-single-plain-text-document-with-clear-file-path-section-headers-and-trigger-a-browser-download-the-downloaded-filename-must-be-session-name-noventra-ai-txt-the-word-emergent-must-not-appear-anywhere-in-the-downloaded-content",
+      "title": "Implement a Download All Files feature in the Chat Interface header. When clicked, assemble all files stored in the current session into a single plain-text document with clear file-path section headers, and trigger a browser download. The downloaded filename must be '<session-name>-noventra-ai.txt'. The word 'Emergent' must not appear anywhere in the downloaded content.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-integrate-ai-code-generation-on-the-frontend-using-fetch-calls-to-an-llm-api-use-a-distinct-system-prompt-per-project-type-that-explicitly-instructs-the-model-to-never-mention-emergent-emergent-sh-or-any-third-party-platform-and-to-identify-itself-as-noventra-ai-the-four-system-prompt-variants-are-custom-general-senior-developer-agent-full-stack-react-api-mobile-react-native-landing-page-react-tailwind-persist-every-user-and-assistant-turn-as-a-message-in-the-motoko-backend-via-addmessage-so-chat-history-is-fully-restored-when-revisiting-a-session",
+      "title": "Integrate AI code generation on the frontend using fetch calls to an LLM API. Use a distinct system prompt per project type that explicitly instructs the model to never mention Emergent, emergent.sh, or any third-party platform, and to identify itself as Noventra.Ai. The four system-prompt variants are: Custom (general senior-developer agent), Full-Stack (React + API), Mobile (React Native), Landing Page (React + Tailwind). Persist every user and assistant turn as a message in the Motoko backend via addMessage so chat history is fully restored when revisiting a session.",
+      "reqIds": [
+        "REQ-8"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-apply-a-cohesive-dark-retro-futurism-meets-modern-saas-visual-theme-across-all-pages-colors-background-050505-card-paper-0a0a0a-primary-indigo-6366f1-secondary-cyan-06b6d4-text-ededed-a1a1aa-borders-27272a-typography-space-grotesk-bold-for-headings-inter-for-body-jetbrains-mono-for-code-glassmorphism-cards-with-backdrop-blur-xl-and-white-10-border-subtle-indigo-and-cyan-radial-glow-blobs-as-background-accents-micro-animations-via-framer-motion-on-page-load-message-appearance-and-button-hover-tap-use-max-w-7xl-layout-with-generous-spacing-render-the-hero-background-image-and-logo-icon-from-frontend-public-assets-generated",
+      "title": "Apply a cohesive dark 'Retro-Futurism meets Modern SaaS' visual theme across all pages. Colors: background #050505, card/paper #0A0A0A, primary indigo #6366f1, secondary cyan #06b6d4, text #EDEDED / #A1A1AA, borders #27272A. Typography: Space Grotesk bold for headings, Inter for body, JetBrains Mono for code. Glassmorphism cards with backdrop-blur-xl and white/10 border. Subtle indigo and cyan radial glow blobs as background accents. Micro-animations via framer-motion on page load, message appearance, and button hover/tap. Use max-w-7xl layout with generous spacing. Render the hero background image and logo icon from frontend/public/assets/generated.",
+      "reqIds": [
+        "REQ-9"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-replace-all-live-openai-api-calls-in-frontend-src-services-llmservice-ts-with-high-quality-pre-built-template-responses-for-each-project-type-full-stack-app-mobile-app-landing-page-custom-the-generateresponse-function-must-no-longer-make-any-fetch-calls-to-external-apis-instead-it-must-inspect-the-user-s-message-and-the-session-s-projecttype-then-return-a-realistic-multi-file-code-response-formatted-with-fenced-code-blocks-tagged-with-filenames-e-g-tsx-filename-src-app-tsx-each-template-must-produce-at-least-3-5-files-of-plausible-starter-code-relevant-to-the-project-type-no-api-key-of-any-kind-is-required-or-referenced",
+      "title": "Replace all live OpenAI API calls in frontend/src/services/llmService.ts with high-quality pre-built template responses for each project type (Full-Stack App, Mobile App, Landing Page, Custom). The generateResponse function must no longer make any fetch calls to external APIs. Instead, it must inspect the user's message and the session's projectType, then return a realistic, multi-file code response formatted with fenced code blocks tagged with filenames (e.g. ```tsx filename: src/App.tsx). Each template must produce at least 3–5 files of plausible starter code relevant to the project type. No API key of any kind is required or referenced.",
+      "reqIds": [
+        "REQ-10"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-failed-to-create-session-please-try-again-error-on-the-new-session-page-the-createsession-backend-call-is-failing-audit-the-motoko-actor-s-createsession-function-and-the-frontend-usequeries-ts-hook-that-calls-it-to-identify-and-resolve-the-mismatch-e-g-argument-shape-principal-handling-or-stable-variable-initialization-the-new-session-form-must-successfully-create-a-session-and-navigate-to-the-chat-page-without-errors",
+      "title": "Fix the 'Failed to create session. Please try again.' error on the New Session page. The createSession backend call is failing — audit the Motoko actor's createSession function and the frontend useQueries.ts hook that calls it to identify and resolve the mismatch (e.g. argument shape, principal handling, or stable variable initialization). The New Session form must successfully create a session and navigate to the Chat page without errors.",
+      "reqIds": [
+        "REQ-11"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-remove-all-localhost-url-references-from-the-pre-built-template-responses-in-frontend-src-services-llmservice-ts-template-responses-must-not-instruct-users-to-open-localhost-5173-or-any-localhost-127-0-0-1-url-replace-any-such-instructions-with-a-note-that-the-project-is-ready-to-use-and-the-user-can-follow-the-getting-started-steps-in-their-local-environment-without-mentioning-a-specific-localhost-address",
+      "title": "Remove all localhost URL references from the pre-built template responses in frontend/src/services/llmService.ts. Template responses must not instruct users to open localhost:5173 or any localhost/127.0.0.1 URL. Replace any such instructions with a note that the project is ready to use and the user can follow the Getting Started steps in their local environment, without mentioning a specific localhost address.",
+      "reqIds": [
+        "REQ-12"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-7",
+      "summary": "Implement the Motoko backend as a single actor with stable storage for sessions. Each session must store: id (Text), name (Text), projectType (Text), messages (array of records with role, content, timestamp), files (array of records with filename and content), createdAt (Int nanoseconds), updatedAt (Int nanoseconds). Expose update and query calls: createSession, getSessions, getSession, addMessage, updateFiles, deleteSession. All data must survive canister upgrades via stable variables.",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-8",
+      "summary": "Replace live OpenAI API calls with high-quality pre-built template responses for each project type (Full-Stack, Mobile, Landing Page, Custom). No API key required. Templates should generate realistic starter code.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-11",
+      "summary": "Fix the navigation link on the Home landing page (HomePage.tsx) that redirects users to the Sessions page. The link must use the React Router path (/sessions) and must not contain any hardcoded localhost or absolute URL. Verify all CTA buttons ('Start New Project', 'My Sessions') route correctly within the deployed app.",
+      "reqIds": [
+        "REQ-13"
+      ],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "Noventra.Ai",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

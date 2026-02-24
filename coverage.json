@@ -1,0 +1,62 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-24T21:00:46.050Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 3,
+    "implemented": 2,
+    "items": [
+      {
+        "id": "REQ-11",
+        "summary": "Fix the 'Failed to create session. Please try again.' error on the New Session page. The createSession backend call is failing — audit the Motoko actor's createSession function and the frontend useQueries.ts hook that calls it to identify and resolve the mismatch (e.g. argument shape, principal handling, or stable variable initialization). The New Session form must successfully create a session and navigate to the Chat page without errors.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/NewSessionPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/NewSessionPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-12",
+        "summary": "Remove all localhost URL references from the pre-built template responses in frontend/src/services/llmService.ts. Template responses must not instruct users to open localhost:5173 or any localhost/127.0.0.1 URL. Replace any such instructions with a note that the project is ready to use and the user can follow the Getting Started steps in their local environment, without mentioning a specific localhost address.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/services/llmService.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/services/llmService.ts"
+        ]
+      },
+      {
+        "id": "REQ-13",
+        "summary": "Fix the navigation link on the Home landing page (HomePage.tsx) that redirects users to the Sessions page. The link must use the React Router path (/sessions) and must not contain any hardcoded localhost or absolute URL. Verify all CTA buttons ('Start New Project', 'My Sessions') route correctly within the deployed app.",
+        "status": "missing",
+        "plannedFiles": [
+          "frontend/src/pages/HomePage.tsx"
+        ],
+        "matchedFiles": []
+      }
+    ]
+  },
+  "changedFiles": [
+    "build-request.json",
+    "feature_evidence.json",
+    "frontend-file-summaries.txt",
+    "frontend-implementation-plan.json",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/ChatPage.tsx",
+    "frontend/src/pages/NewSessionPage.tsx",
+    "frontend/src/services/llmService.ts",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}
