@@ -3,27 +3,22 @@
   "projectStateVersion": 3,
   "summary": "New project",
   "architectural_notes": [],
-  "known_issues": [],
-  "isFixRequest": false,
+  "known_issues": [
+    "Actor not available to start error encountered during deployment/startup"
+  ],
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-remove-the-made-by-you-or-equivalent-made-with-ai-watermark-branding-element-displayed-at-the-bottom-of-the-app-including-any-footer-badges-attribution-text-or-watermark-injected-into-ai-generated-html-output-in-llmservice-ts",
-      "title": "Remove the 'Made by you' (or equivalent 'Made with AI' / watermark) branding element displayed at the bottom of the app, including any footer badges, attribution text, or watermark injected into AI-generated HTML output in llmService.ts.",
+      "id": "feature-fix-the-actor-not-available-to-start-error-by-ensuring-the-backend-actor-is-properly-initialized-before-any-frontend-queries-or-mutations-attempt-to-use-it-add-a-guard-in-the-actor-access-layer-that-waits-for-the-actor-to-be-ready-before-allowing-calls-and-surfaces-a-meaningful-loading-or-error-state-to-the-user-if-the-actor-is-unavailable",
+      "title": "Fix the 'actor not available to start' error by ensuring the backend actor is properly initialized before any frontend queries or mutations attempt to use it. Add a guard in the actor access layer that waits for the actor to be ready before allowing calls, and surfaces a meaningful loading or error state to the user if the actor is unavailable.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     }
   ],
-  "new_feature_requests": [
-    {
-      "id": "AR-1",
-      "summary": "Remove 'Made with [AI]' branding from the bottom of the app",
-      "reqIds": [],
-      "status": "pending"
-    }
-  ],
-  "projectName": "Remove 'Made by you' branding from bottom of app",
+  "new_feature_requests": [],
+  "projectName": "Fix actor not available to start error",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

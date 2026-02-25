@@ -1,10 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Remove the "Made by you" / watermark branding element from the bottom of the app.
+**Goal:** Fix the "actor not available to start" error by ensuring the backend actor is fully initialized before any frontend queries or mutations attempt to use it.
 
 **Planned changes:**
-- Remove the "Made by you" (or equivalent attribution/watermark) text and any footer badge from the bottom of the app UI
-- Remove or clear the Noventra.ai watermark string injected into AI-generated HTML output in `llmService.ts`
+- Add a guard/wrapper in the actor access layer that waits for the actor to be ready before allowing calls
+- Display a meaningful loading state while the actor is initializing
+- Display a clear error message to the user if the actor fails to initialize, instead of crashing
+- Ensure the fix applies consistently on both initial page load and after Internet Identity authentication
 
-**User-visible outcome:** No attribution or watermark text appears at the bottom of any page; all other functionality and layout remain unchanged.
+**User-visible outcome:** The application no longer crashes or shows "actor not available to start" errors; users see a loading indicator while the actor initializes and a clear error message if initialization fails.

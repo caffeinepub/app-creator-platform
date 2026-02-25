@@ -8,8 +8,6 @@ import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
-
-
 actor {
   include MixinStorage();
 
@@ -57,6 +55,9 @@ actor {
 
   let userProfiles = Map.empty<Principal, UserProfile>();
 
+  // System ready flag
+  var isReady : Bool = false;
+
   func toView(session : SessionData) : SessionView {
     {
       id = session.id;
@@ -70,7 +71,25 @@ actor {
     };
   };
 
+  func ensureReady() : () {
+    if (not isReady) {
+      Runtime.trap("System is not ready yet. Please wait...");
+    };
+  };
+
+  // Mark system as ready — admin only
+  public shared ({ caller }) func initialize() : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can initialize the system");
+    };
+    if (isReady) {
+      Runtime.trap("System is already initialized");
+    };
+    isReady := true;
+  };
+
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
+    ensureReady();
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can get profiles");
     };
@@ -78,6 +97,7 @@ actor {
   };
 
   public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
+    ensureReady();
     if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Can only view your own profile");
     };
@@ -85,16 +105,24 @@ actor {
   };
 
   public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
+    ensureReady();
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can save profiles");
     };
     userProfiles.add(caller, profile);
   };
 
-  public shared ({ caller }) func createSession(name : Text, projectType : Text) : async Text {
+  // Create a new session
+  public shared ({ caller }) func createSession(name : Text, projectType : Text) : async ?SessionView {
+    ensureReady();
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can create sessions");
     };
+
+    if (name.isEmpty()) {
+      return null;
+    };
+
     let sessionId = name.concat("_").concat(Time.now().toText());
     let newSession : SessionData = {
       id = sessionId;
@@ -106,11 +134,13 @@ actor {
       updatedAt = Time.now();
       owner = caller;
     };
+
     sessionMap.add(sessionId, newSession);
-    sessionId;
+    ?toView(newSession);
   };
 
   public query ({ caller }) func getSessions() : async [SessionView] {
+    ensureReady();
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can list sessions");
     };
@@ -123,6 +153,7 @@ actor {
   };
 
   public query ({ caller }) func getSession(sessionId : Text) : async SessionView {
+    ensureReady();
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can get sessions");
     };
@@ -136,6 +167,7 @@ actor {
   };
 
   public shared ({ caller }) func addMessage(sessionId : Text, role : Text, content : Text) : async () {
+    ensureReady();
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can add messages");
     };
@@ -165,6 +197,7 @@ actor {
   };
 
   public shared ({ caller }) func updateFiles(sessionId : Text, filename : Text, content : Text) : async () {
+    ensureReady();
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can update files");
     };
@@ -193,6 +226,7 @@ actor {
   };
 
   public shared ({ caller }) func deleteSession(sessionId : Text) : async () {
+    ensureReady();
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can delete sessions");
     };
@@ -207,4 +241,3 @@ actor {
     };
   };
 };
-

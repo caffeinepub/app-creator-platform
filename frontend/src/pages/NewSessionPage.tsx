@@ -66,14 +66,26 @@ export default function NewSessionPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      toast.error('Please enter a project name.');
+      return;
+    }
 
     try {
-      const sessionId = await createSession({ name: name.trim(), projectType });
+      const session = await createSession({ name: trimmedName, projectType });
+
+      const sessionId = session.id;
+      if (!sessionId) {
+        toast.error('Session was created but returned an invalid ID. Please try again.');
+        return;
+      }
+
       toast.success('Session created!');
-      navigate({ to: '/chat/$sessionId', params: { sessionId } });
-    } catch {
-      toast.error('Failed to create session. Please try again.');
+      navigate({ to: '/sessions/$sessionId', params: { sessionId } });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to create session. Please try again.';
+      toast.error(message);
     }
   };
 
@@ -106,6 +118,7 @@ export default function NewSessionPage() {
                   focus:border-cyan/60
                 "
                 autoFocus
+                disabled={isPending}
               />
             </div>
 
@@ -120,9 +133,10 @@ export default function NewSessionPage() {
                     key={type.id}
                     type="button"
                     onClick={() => setProjectType(type.id)}
+                    disabled={isPending}
                     className={`
                       flex items-start gap-4 p-4 rounded-xl border text-left
-                      transition-all duration-200
+                      transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed
                       ${projectType === type.id
                         ? type.color === 'brand'
                           ? 'border-brand/60 bg-brand/10 shadow-brand-glow-sm'
@@ -179,7 +193,8 @@ export default function NewSessionPage() {
         <div className="text-center mt-6">
           <button
             onClick={() => navigate({ to: '/sessions' })}
-            className="text-text-muted hover:text-text-secondary text-sm transition-colors"
+            disabled={isPending}
+            className="text-text-muted hover:text-text-secondary text-sm transition-colors disabled:opacity-50"
           >
             ← Back to Sessions
           </button>

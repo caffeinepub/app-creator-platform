@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-25T15:45:08.360Z",
+  "generatedAt": "2026-02-25T19:40:47.597Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -12,27 +12,44 @@
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Remove the 'Made by you' (or equivalent 'Made with AI' / watermark) branding element displayed at the bottom of the app, including any footer badges, attribution text, or watermark injected into AI-generated HTML output in llmService.ts.",
+        "summary": "Fix the 'actor not available to start' error by ensuring the backend actor is properly initialized before any frontend queries or mutations attempt to use it. Add a guard in the actor access layer that waits for the actor to be ready before allowing calls, and surfaces a meaningful loading or error state to the user if the actor is unavailable.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/services/llmService.ts",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/ActorGuard.tsx",
           "frontend/src/App.tsx",
-          "frontend/src/pages/HomePage.tsx"
+          "frontend/src/pages/SessionsPage.tsx",
+          "frontend/src/pages/ChatPage.tsx",
+          "frontend/src/pages/NewSessionPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/services/llmService.ts",
-          "frontend/src/pages/HomePage.tsx"
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/ActorGuard.tsx",
+          "frontend/src/App.tsx",
+          "frontend/src/pages/SessionsPage.tsx",
+          "frontend/src/pages/ChatPage.tsx",
+          "frontend/src/pages/NewSessionPage.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/src/App.tsx",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/components/ActorGuard.tsx",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/ChatPage.tsx",
     "frontend/src/pages/HomePage.tsx",
-    "frontend/src/services/llmService.ts",
+    "frontend/src/pages/NewSessionPage.tsx",
+    "frontend/src/pages/SessionsPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

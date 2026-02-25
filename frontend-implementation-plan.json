@@ -1,31 +1,47 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Remove 'Made by you' branding from bottom of app",
+  "title": "Fix actor not available to start error",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Remove all 'Made by you' / 'Made with AI' branding and watermarks from the application footer and generated HTML output",
+      "summary": "Fix the 'actor not available to start' error by ensuring the backend actor is properly initialized before any frontend queries or mutations attempt to use it",
       "acceptanceCriteria": [
-        "No 'Made by', 'Made with', or similar attribution/watermark text is visible at the bottom of any page in the app.",
-        "The Noventra.ai watermark string in frontend/src/services/llmService.ts is removed or left empty.",
-        "All other functionality and layout remain unaffected."
+        "The application no longer throws or displays 'actor not available to start' on load or after login",
+        "Frontend queries and mutations gracefully wait for the actor to be initialized before executing",
+        "If the actor fails to initialize, the UI displays a clear error message instead of crashing",
+        "The fix works consistently on both initial page load and after Internet Identity authentication"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/services/llmService.ts",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Remove or empty the Noventra.ai watermark string constant that gets injected into AI-generated HTML output. Locate the watermark definition (likely a string constant containing 'Made by' or 'Noventra.ai' attribution) and either delete it entirely or set it to an empty string. Ensure the generateHTML function or similar methods no longer append watermark text to generated content."
+          "description": "Update all React Query hooks to properly depend on both actor availability and actor fetching state. Ensure the enabled flag checks both !!actor and !actorFetching conditions for all queries and mutations. This prevents queries from executing before the actor is ready and eliminates the 'actor not available' race condition."
+        },
+        {
+          "path": "frontend/src/components/ActorGuard.tsx",
+          "operation": "create",
+          "description": "Create a wrapper component that guards application content behind actor initialization. Display a loading state while the actor is being initialized (actorFetching is true), show an error message if actor initialization fails after a timeout, and only render children when the actor is available and ready. Use useActor hook to monitor actor state and provide graceful degradation."
         },
         {
           "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Review the shared nav layout and remove any footer component or branding element displaying 'Made by you' text at the bottom of the application. If a Footer component is rendered, remove it from the layout. Ensure the navigation layout only contains Logo, ShareButton, and LoginButton without any attribution footer."
+          "description": "Wrap the router outlet with the ActorGuard component to prevent any route from rendering before the actor is initialized. This ensures all pages and components that depend on backend queries start with a ready actor. Keep the ProfileSetup modal logic but ensure it also waits for actor readiness."
         },
         {
-          "path": "frontend/src/pages/HomePage.tsx",
+          "path": "frontend/src/pages/SessionsPage.tsx",
           "operation": "modify",
-          "description": "Remove any 'Made by you' or attribution text from the marketing landing page footer section. Check the bottom of the page for footer elements containing branding text and delete them, ensuring the CTA buttons and feature sections remain intact."
+          "description": "Update the sessions query dependency to use the corrected enabled flag pattern from useQueries.ts. Ensure the page displays a loading state while actorFetching is true and only attempts to fetch sessions once the actor is confirmed available."
+        },
+        {
+          "path": "frontend/src/pages/ChatPage.tsx",
+          "operation": "modify",
+          "description": "Update the session query and mutations to properly wait for actor initialization. Add explicit checks for actorFetching state before allowing message submission or file updates. Display loading states during actor initialization to prevent user interaction before the backend is ready."
+        },
+        {
+          "path": "frontend/src/pages/NewSessionPage.tsx",
+          "operation": "modify",
+          "description": "Update the createSession mutation to depend on actor availability. Disable the form submit button while actorFetching is true to prevent session creation attempts before the actor is initialized."
         }
       ]
     }

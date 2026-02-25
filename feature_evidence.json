@@ -2,11 +2,15 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-remove-the-made-by-you-or-equivalent-made-with-ai-watermark-branding-element-displayed-at-the-bottom-of-the-app-including-any-footer-badges-attribution-text-or-watermark-injected-into-ai-generated-html-output-in-llmservice-ts",
-      "featureTitle": "Remove the 'Made by you' (or equivalent 'Made with AI' / watermark) branding element displayed at the bottom of the app, including any footer badges, attribution text, or watermark injected into AI-generated HTML output in llmService.ts.",
+      "featureId": "feature-fix-the-actor-not-available-to-start-error-by-ensuring-the-backend-actor-is-properly-initialized-before-any-frontend-queries-or-mutations-attempt-to-use-it-add-a-guard-in-the-actor-access-layer-that-waits-for-the-actor-to-be-ready-before-allowing-calls-and-surfaces-a-meaningful-loading-or-error-state-to-the-user-if-the-actor-is-unavailable",
+      "featureTitle": "Fix the 'actor not available to start' error by ensuring the backend actor is properly initialized before any frontend queries or mutations attempt to use it. Add a guard in the actor access layer that waits for the actor to be ready before allowing calls, and surfaces a meaningful loading or error state to the user if the actor is unavailable.",
       "files": [
-        "frontend/src/pages/HomePage.tsx",
-        "frontend/src/services/llmService.ts"
+        "frontend/src/App.tsx",
+        "frontend/src/components/ActorGuard.tsx",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/ChatPage.tsx",
+        "frontend/src/pages/NewSessionPage.tsx",
+        "frontend/src/pages/SessionsPage.tsx"
       ],
       "components": [
         "blob-storage@4.0.0",

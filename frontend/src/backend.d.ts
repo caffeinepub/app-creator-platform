@@ -37,13 +37,14 @@ export enum UserRole {
 export interface backendInterface {
     addMessage(sessionId: string, role: string, content: string): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
-    createSession(name: string, projectType: string): Promise<string>;
+    createSession(name: string, projectType: string): Promise<SessionView | null>;
     deleteSession(sessionId: string): Promise<void>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getSession(sessionId: string): Promise<SessionView>;
     getSessions(): Promise<Array<SessionView>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
+    initialize(): Promise<void>;
     isCallerAdmin(): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     updateFiles(sessionId: string, filename: string, content: string): Promise<void>;

@@ -71,7 +71,7 @@ export default function HomePage() {
         />
         {/* Gradient overlay */}
         <div className="absolute inset-0" style={{
-          background: 'radial-gradient(ellipse at 50% 0%, oklch(0.65 0.22 25 / 0.15) 0%, transparent 60%), radial-gradient(ellipse at 80% 80%, oklch(0.72 0.18 195 / 0.1) 0%, transparent 50%)',
+          background: 'radial-gradient(ellipse at 50% 0%, oklch(0.65 0.22 25 / 0.15) 0%, transparent 60%), radial-gradient(ellipse at 80% 80%, oklch(0.72 0.18 195 / 0.15) 0%, transparent 50%)',
         }} />
         {/* Scanline effect */}
         <div className="absolute inset-0 scanline opacity-30" />
@@ -102,7 +102,7 @@ export default function HomePage() {
             {isAuthenticated ? (
               <>
                 <button
-                  onClick={() => navigate({ to: '/new-session' })}
+                  onClick={() => navigate({ to: '/sessions/new' })}
                   className="btn-primary flex items-center gap-2 px-8 py-4 rounded-xl text-lg font-semibold"
                 >
                   Start Building <ArrowRight className="w-5 h-5" />
@@ -117,7 +117,7 @@ export default function HomePage() {
             ) : (
               <>
                 <button
-                  onClick={() => navigate({ to: '/new-session' })}
+                  onClick={() => navigate({ to: '/sessions/new' })}
                   className="btn-primary flex items-center gap-2 px-8 py-4 rounded-xl text-lg font-semibold"
                 >
                   Get Started Free <ArrowRight className="w-5 h-5" />
@@ -198,7 +198,7 @@ export default function HomePage() {
               Join the future of AI-powered development on the decentralized cloud.
             </p>
             <button
-              onClick={() => navigate({ to: '/new-session' })}
+              onClick={() => navigate({ to: '/sessions/new' })}
               className="btn-primary inline-flex items-center gap-2 px-10 py-4 rounded-xl text-lg font-semibold"
             >
               Start Your First Project <ArrowRight className="w-5 h-5" />

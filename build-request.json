@@ -1,34 +1,35 @@
 {
   "kind": "build_request",
-  "title": "Remove 'Made by you' branding from bottom of app",
-  "priority": "normal",
+  "title": "Fix actor not available to start error",
+  "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Remove the 'Made by you' (or equivalent 'Made with AI' / watermark) branding element displayed at the bottom of the app, including any footer badges, attribution text, or watermark injected into AI-generated HTML output in llmService.ts.",
-      "target": "frontend",
+      "text": "Fix the 'actor not available to start' error by ensuring the backend actor is properly initialized before any frontend queries or mutations attempt to use it. Add a guard in the actor access layer that waits for the actor to be ready before allowing calls, and surfaces a meaningful loading or error state to the user if the actor is unavailable.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-6"
         ],
         "quotes": [
-          "remove made my you at the bottom"
+          "error actor not available to start"
         ]
       },
       "acceptanceCriteria": [
-        "No 'Made by', 'Made with', or similar attribution/watermark text is visible at the bottom of any page in the app.",
-        "The Noventra.ai watermark string in frontend/src/services/llmService.ts is removed or left empty.",
-        "All other functionality and layout remain unaffected."
+        "The application no longer throws or displays 'actor not available to start' on load or after login",
+        "Frontend queries and mutations gracefully wait for the actor to be initialized before executing",
+        "If the actor fails to initialize, the UI displays a clear error message instead of crashing",
+        "The fix works consistently on both initial page load and after Internet Identity authentication"
       ]
     }
   ],
   "constraints": [
-    "Do not modify any files listed in frontend.immutablePaths.",
-    "Do not alter any backend logic or data models."
+    "Do not modify files in frontend/src/hooks/useInternetIdentity.ts or frontend/src/hooks/useActor.ts directly — propose safe alternatives or wrappers",
+    "Do not change the backend actor interface or data schema"
   ],
   "nonGoals": [
-    "Removing or changing the Noventra.ai logo or brand identity in the header/navbar.",
-    "Any changes to backend code or API endpoints."
+    "Changing the authentication flow beyond what is needed to fix the actor initialization timing issue",
+    "Refactoring unrelated frontend components or pages"
   ],
   "imageRequirements": {
     "required": [],

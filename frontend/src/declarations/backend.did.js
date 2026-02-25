@@ -24,7 +24,6 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
-export const UserProfile = IDL.Record({ 'name' : IDL.Text });
 export const FileData = IDL.Record({
   'content' : IDL.Text,
   'filename' : IDL.Text,
@@ -44,6 +43,7 @@ export const SessionView = IDL.Record({
   'createdAt' : IDL.Int,
   'updatedAt' : IDL.Int,
 });
+export const UserProfile = IDL.Record({ 'name' : IDL.Text });
 
 export const idlService = IDL.Service({
   '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -75,7 +75,7 @@ export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'addMessage' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-  'createSession' : IDL.Func([IDL.Text, IDL.Text], [IDL.Text], []),
+  'createSession' : IDL.Func([IDL.Text, IDL.Text], [IDL.Opt(SessionView)], []),
   'deleteSession' : IDL.Func([IDL.Text], [], []),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
@@ -86,6 +86,7 @@ export const idlService = IDL.Service({
       [IDL.Opt(UserProfile)],
       ['query'],
     ),
+  'initialize' : IDL.Func([], [], []),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'updateFiles' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [], []),
@@ -110,7 +111,6 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
-  const UserProfile = IDL.Record({ 'name' : IDL.Text });
   const FileData = IDL.Record({ 'content' : IDL.Text, 'filename' : IDL.Text });
   const Message = IDL.Record({
     'content' : IDL.Text,
@@ -127,6 +127,7 @@ export const idlFactory = ({ IDL }) => {
     'createdAt' : IDL.Int,
     'updatedAt' : IDL.Int,
   });
+  const UserProfile = IDL.Record({ 'name' : IDL.Text });
   
   return IDL.Service({
     '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -158,7 +159,11 @@ export const idlFactory = ({ IDL }) => {
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'addMessage' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-    'createSession' : IDL.Func([IDL.Text, IDL.Text], [IDL.Text], []),
+    'createSession' : IDL.Func(
+        [IDL.Text, IDL.Text],
+        [IDL.Opt(SessionView)],
+        [],
+      ),
     'deleteSession' : IDL.Func([IDL.Text], [], []),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
@@ -169,6 +174,7 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(UserProfile)],
         ['query'],
       ),
+    'initialize' : IDL.Func([], [], []),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'updateFiles' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [], []),

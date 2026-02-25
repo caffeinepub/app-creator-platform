@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import type { UserProfile, SessionView } from '../backend';
+import type { SessionView, UserProfile } from '../backend';
 
 export function useGetCallerUserProfile() {
   const { actor, isFetching: actorFetching } = useActor();
@@ -47,6 +47,7 @@ export function useGetSessions() {
       return actor.getSessions();
     },
     enabled: !!actor && !actorFetching,
+    retry: false,
   });
 }
 
@@ -60,6 +61,11 @@ export function useGetSession(sessionId: string) {
       return actor.getSession(sessionId);
     },
     enabled: !!actor && !actorFetching && !!sessionId,
+    retry: (failureCount, error) => {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes('not found') || msg.includes('Access denied')) return false;
+      return failureCount < 2;
+    },
   });
 }
 
@@ -70,10 +76,59 @@ export function useCreateSession() {
   return useMutation({
     mutationFn: async ({ name, projectType }: { name: string; projectType: string }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.createSession(name, projectType);
+      const session = await actor.createSession(name, projectType);
+      if (!session) throw new Error('Failed to create session: server returned null');
+      if (!session.id) throw new Error('Failed to create session: missing session ID');
+      return session as SessionView;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
+    },
+  });
+}
+
+export function useAddMessage() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      sessionId,
+      role,
+      content,
+    }: {
+      sessionId: string;
+      role: string;
+      content: string;
+    }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.addMessage(sessionId, role, content);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['session', variables.sessionId] });
+    },
+  });
+}
+
+export function useUpdateFiles() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      sessionId,
+      filename,
+      content,
+    }: {
+      sessionId: string;
+      filename: string;
+      content: string;
+    }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.updateFiles(sessionId, filename, content);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['session', variables.sessionId] });
     },
   });
 }
@@ -93,32 +148,20 @@ export function useDeleteSession() {
   });
 }
 
-export function useAddMessage() {
+export function useInitializeSystem() {
   const { actor } = useActor();
-  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ sessionId, role, content }: { sessionId: string; role: string; content: string }) => {
+    mutationFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      return actor.addMessage(sessionId, role, content);
-    },
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['session', variables.sessionId] });
-    },
-  });
-}
-
-export function useUpdateFiles() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ sessionId, filename, content }: { sessionId: string; filename: string; content: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.updateFiles(sessionId, filename, content);
-    },
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['session', variables.sessionId] });
+      try {
+        await actor.initialize();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        // Ignore "already initialized" error — it means we're good
+        if (msg.includes('already initialized')) return;
+        throw err;
+      }
     },
   });
 }

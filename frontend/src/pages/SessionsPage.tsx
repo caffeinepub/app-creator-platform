@@ -40,7 +40,7 @@ function SessionCard({ session, onDelete, isDeleting }: SessionCardProps) {
   return (
     <div
       className="glass-card p-5 group cursor-pointer hover:border-brand/40 hover:shadow-brand-glow transition-all duration-300 hover:-translate-y-0.5"
-      onClick={() => navigate({ to: '/chat/$sessionId', params: { sessionId: session.id } })}
+      onClick={() => navigate({ to: '/sessions/$sessionId', params: { sessionId: session.id } })}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -127,7 +127,7 @@ export default function SessionsPage() {
             </p>
           </div>
           <button
-            onClick={() => navigate({ to: '/new-session' })}
+            onClick={() => navigate({ to: '/sessions/new' })}
             className="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold"
           >
             <Plus className="w-4 h-4" />
@@ -167,7 +167,7 @@ export default function SessionsPage() {
             <h3 className="text-xl font-semibold mb-2">No sessions yet</h3>
             <p className="text-text-muted mb-6">Create your first project to get started with Noventra.ai</p>
             <button
-              onClick={() => navigate({ to: '/new-session' })}
+              onClick={() => navigate({ to: '/sessions/new' })}
               className="btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold"
             >
               <Plus className="w-4 h-4" />
