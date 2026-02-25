@@ -1,41 +1,27 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-25T19:49:33.928Z",
-  "summary": "The diff implements fixes for both REQ-1 (ActorGuard frontend fix) and REQ-2 (backend initialization logic). The ActorGuard component now has proper state management with timeout handling, treats 'already initialized' and 'Unauthorized' as ready states, and shows appropriate error states. The backend initialize() function now returns true on success and sets isReady correctly. However, one REQ-2 acceptance criterion is partially unmet: the backend still uses Runtime.trap when called a second time rather than returning a clean success value.",
+  "generatedAt": "2026-02-25T20:36:44.602Z",
+  "summary": "The diff implements REQ-1 (ActorGuard optimization with 8s hard timeout, status messages, progress dots) and REQ-3 (SessionErrorBanner with friendly messages, Retry and Logout buttons). REQ-2 (backend main.mo optimization) is partially addressed — the initialize() function appears to have been removed/refactored but no explicit evidence of performance optimization is visible in the truncated diff.",
   "missing_requirements": [
     {
       "id": "REQ-2",
-      "requirement": "Calling initialize() when already initialized returns a value treated as a ready state by the frontend",
-      "reason": "The backend initialize() function calls Runtime.trap('System is already initialized') when isReady is true, meaning it throws a trap/error rather than returning a success value. The frontend works around this by catching the error message string, but the backend itself does not return a clean success response as the AC specifies.",
-      "evidence": [
-        "backend/main.mo"
-      ]
-    }
-  ],
-  "hallucinated_features": [
-    {
-      "description": "A migration module (backend/migration.mo) was added with a run() function that accepts and returns an actor state",
-      "reason": "The build request does not mention adding a migration module or any canister upgrade/migration infrastructure. This file was not requested.",
-      "evidence": [
-        "backend/migration.mo"
-      ]
-    },
-    {
-      "description": "A getReadyStatus() public query function was added to the backend actor",
-      "reason": "The build request does not explicitly request a separate getReadyStatus() query endpoint. The requirements focus on fixing the initialize() flow and isReady flag, but a dedicated status query function was not requested.",
+      "requirement": "Optimize backend initialization in main.mo to ensure the initialize() function returns quickly. Avoid blocking or expensive operations during initialization that could cause the frontend to wait.",
+      "reason": "The backend/main.mo diff shows the actor structure but no explicit initialize() function optimization is visible in the truncated content. The frontend-file-summaries.txt notes that useInitializeSystem mutation was removed (implying initialize() may have been removed from backend too), but no evidence of actual backend performance optimization such as removing blocking loops or making initialization fast is present in the diff.",
       "evidence": [
         "backend/main.mo",
-        "frontend/src/components/ActorGuard.tsx"
+        "frontend/src/hooks/useQueries.ts"
       ]
     }
   ],
-  "confidence": 0.78,
+  "hallucinated_features": [],
+  "confidence": 0.72,
   "changed_files": [
     "backend/main.mo",
-    "backend/migration.mo",
     "frontend-file-summaries.txt",
     "frontend/src/components/ActorGuard.tsx",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/ChatPage.tsx",
     "project_state.json"
   ]
 }

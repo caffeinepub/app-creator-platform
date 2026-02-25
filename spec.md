@@ -1,13 +1,16 @@
 # Specification
 
 ## Summary
-**Goal:** Fix the app getting stuck on a "system not ready yet, please wait" loading state by correcting the ActorGuard initialization detection logic and ensuring the backend properly signals readiness.
+**Goal:** Reduce app startup loading time from ~2 minutes to under 10 seconds, optimize backend initialization, and improve error handling for 401 API errors in the chat page.
 
 **Planned changes:**
-- Update the `ActorGuard` component to correctly detect when the backend actor is available and the `initialize()` call has succeeded, transitioning out of the loading state
-- Treat "already initialized" and "Unauthorized" responses from `initialize()` as ready states in the frontend guard
-- Add an appropriate error state if the backend is genuinely unavailable instead of an infinite wait
-- Review and fix the backend `main.mo` actor initialization logic to ensure `isReady` is set correctly and `initialize()` returns a response the frontend can recognize as success
-- Eliminate any race conditions or stuck states in the backend initialization flow
+- Reduce ActorGuard retry delays by capping exponential backoff at a low value (e.g., max 2 seconds per retry)
+- Lower the ActorGuard hard timeout to no more than 10 seconds
+- Ensure the app proceeds to render as soon as a minimal viable connection is established, avoiding unnecessary sequential awaits
+- Display a meaningful progress indicator or status message on the loading screen during startup
+- Optimize the backend `initialize()` function in main.mo to return quickly without blocking or expensive operations
+- Replace the raw red "API error 401: User not found" banner in the chat page with a user-friendly message: "Session expired. Please try again or log out and log back in."
+- Add a "Retry" button to re-send the failed request on 401 errors
+- Add a "Logout" shortcut link in the 401 error state
 
-**User-visible outcome:** The app no longer gets stuck on the loading/waiting message on page load; the main UI renders normally once the actor is ready.
+**User-visible outcome:** The app becomes interactive in under 10 seconds on a normal connection, and users who encounter a 401 error see a friendly message with actionable options instead of a raw error banner.

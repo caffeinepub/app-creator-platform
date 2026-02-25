@@ -1,23 +1,45 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix ActorGuard loading state stuck issue",
+  "title": "Reduce app startup loading time and improve initialization performance",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Fix ActorGuard component to correctly detect backend readiness and transition out of loading state when initialize() resolves, treating 'already initialized' and 'Unauthorized' responses as ready states",
+      "summary": "Reduce app startup/loading time from ~2 minutes to under 10 seconds by optimizing ActorGuard initialization flow with reduced retry delays, lower hard timeout threshold, and avoiding unnecessary sequential awaits during startup",
       "acceptanceCriteria": [
-        "On page load, the app no longer stays stuck on 'system not ready yet please wait'",
-        "ActorGuard transitions out of the loading state once the actor is available and initialize() resolves",
-        "'Already initialized' and 'Unauthorized' responses from initialize() are treated as a ready state",
-        "The main app UI renders after the guard clears successfully",
-        "If the backend is genuinely unavailable, an appropriate error state is shown rather than an infinite wait"
+        "App loads and becomes interactive in under 10 seconds on a normal connection",
+        "ActorGuard does not block the UI for more than 10 seconds under any condition",
+        "Exponential backoff retry delays are capped at a low value (e.g., max 2 seconds per retry) to avoid long waits",
+        "The hard timeout in ActorGuard is reduced to no more than 10 seconds",
+        "Loading screen displays a meaningful progress indicator or status message so users know the app is starting"
       ],
       "file_operations": [
         {
           "path": "frontend/src/components/ActorGuard.tsx",
           "operation": "modify",
-          "description": "Fix the ActorGuard component logic to properly handle initialize() responses. Ensure that when initialize() returns true, false, or throws errors containing 'already initialized' or 'Unauthorized', the component treats these as ready states and allows the app to render. Add proper error handling to distinguish between temporary loading states and genuine backend unavailability. Implement a timeout mechanism to show an error state if the backend doesn't respond within a reasonable time (e.g., 30 seconds). Update the loading state management to correctly transition from loading to ready once the actor is available and initialization completes successfully."
+          "description": "Optimize the initialization flow by reducing the hard timeout from 20 seconds to 10 seconds, capping exponential backoff retry delays at 2 seconds maximum per retry instead of allowing unbounded growth, reducing the initial retry delay from 1000ms to 500ms, and adding a progress indicator that shows current attempt number and status message (e.g., 'Connecting to backend... Attempt 1 of 5') so users see meaningful feedback during startup. Ensure the component proceeds to render children as soon as the backend responds successfully or the 10-second timeout is reached."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Improve error handling for API 401 'User not found' errors in the chat page by displaying a user-friendly message with a 'Retry' button and a suggestion to log out and log back in if the error persists",
+      "acceptanceCriteria": [
+        "401 API errors show a friendly message such as 'Session expired. Please try again or log out and log back in.'",
+        "A 'Retry' button is displayed that re-sends the failed request",
+        "A 'Logout' shortcut link is also shown in the error state",
+        "Raw error text like 'API error 401: User not found' is no longer shown directly to the user"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/ChatPage.tsx",
+          "operation": "modify",
+          "description": "Replace the current error banner that displays raw API error messages with a user-friendly error handling component. When a 401 'User not found' error occurs, display a friendly message like 'Your session has expired. Please try again or log out and log back in.' Include a 'Retry' button that re-attempts the failed operation (message send or session load) and a 'Logout' link that triggers the Internet Identity clear flow. Wrap the error display in a styled container with appropriate spacing and visual hierarchy, removing any direct display of raw error text to the user."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Update error handling in the React Query hooks (especially useAddMessage and useGetSession) to parse and categorize 401 errors distinctly from other error types. Add a custom error type or error code that can be consumed by UI components to determine whether to show the session-expired flow. Ensure that 401 errors are not treated as generic failures but are surfaced with enough context for the ChatPage to display the appropriate retry/logout UI."
         }
       ]
     }

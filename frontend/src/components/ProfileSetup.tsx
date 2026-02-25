@@ -1,15 +1,33 @@
 import React, { useState } from 'react';
 import { useSaveCallerUserProfile } from '../hooks/useQueries';
-import { Flame, Loader2 } from 'lucide-react';
+import { Flame, Loader2, AlertCircle } from 'lucide-react';
 
 export default function ProfileSetup() {
   const [name, setName] = useState('');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const { mutateAsync: saveProfile, isPending } = useSaveCallerUserProfile();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    await saveProfile({ name: name.trim() });
+    setErrorMsg(null);
+    try {
+      await saveProfile({ name: name.trim() });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      // Provide a user-friendly message for common backend errors
+      if (msg.toLowerCase().includes('unauthorized') || msg.toLowerCase().includes('only users')) {
+        setErrorMsg(
+          'Your account does not have permission to save a profile yet. Please try logging out and back in, or contact support.'
+        );
+      } else if (msg.toLowerCase().includes('not ready') || msg.toLowerCase().includes('system is not ready')) {
+        setErrorMsg('The system is still starting up. Please wait a moment and try again.');
+      } else if (msg.toLowerCase().includes('actor not available')) {
+        setErrorMsg('Connection to the backend is not ready. Please refresh the page and try again.');
+      } else {
+        setErrorMsg(msg || 'An unexpected error occurred. Please try again.');
+      }
+    }
   };
 
   return (
@@ -39,7 +57,10 @@ export default function ProfileSetup() {
             <input
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (errorMsg) setErrorMsg(null);
+              }}
               placeholder="Enter your name..."
               className="
                 w-full px-4 py-3 rounded-xl bg-surface border border-border
@@ -48,8 +69,17 @@ export default function ProfileSetup() {
                 focus:border-cyan/60
               "
               autoFocus
+              disabled={isPending}
             />
           </div>
+
+          {/* Inline error message */}
+          {errorMsg && (
+            <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
 
           <button
             type="submit"

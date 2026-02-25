@@ -1,33 +1,55 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
+  "summary": "Noventra.ai app with issues: API 401 authentication error and slow loading time (~2 minutes to start).",
   "architectural_notes": [],
   "known_issues": [
-    "App shows 'system not ready yet please wait' message on load"
+    "API 401 error: User not found — session/auth token invalid or expired",
+    "App takes ~2 minutes to start/load"
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-fix-the-actorguard-component-so-it-does-not-get-stuck-showing-a-system-not-ready-yet-please-wait-message-on-load-the-component-should-correctly-detect-when-the-backend-actor-is-available-and-the-initialize-call-has-succeeded-including-treating-already-initialized-and-unauthorized-responses-as-ready-states-then-allow-the-app-to-render-normally-without-remaining-in-a-perpetual-loading-waiting-state",
-      "title": "Fix the ActorGuard component so it does not get stuck showing a 'system not ready yet, please wait' message on load. The component should correctly detect when the backend actor is available and the initialize() call has succeeded (including treating 'already initialized' and 'Unauthorized' responses as ready states), then allow the app to render normally without remaining in a perpetual loading/waiting state.",
+      "id": "feature-reduce-the-app-startup-loading-time-from-2-minutes-to-under-10-seconds-optimize-the-actorguard-initialization-flow-by-reducing-retry-delays-lowering-the-hard-timeout-threshold-and-ensuring-the-app-proceeds-to-render-as-soon-as-the-backend-responds-or-a-minimal-viable-connection-is-established-avoid-unnecessary-sequential-awaits-during-startup",
+      "title": "Reduce the app startup/loading time from ~2 minutes to under 10 seconds. Optimize the ActorGuard initialization flow by reducing retry delays, lowering the hard timeout threshold, and ensuring the app proceeds to render as soon as the backend responds or a minimal viable connection is established. Avoid unnecessary sequential awaits during startup.",
       "reqIds": [
         "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-improve-the-error-handling-for-api-401-user-not-found-errors-in-the-chat-page-instead-of-showing-a-raw-red-error-banner-display-a-user-friendly-message-with-a-retry-button-that-re-attempts-the-request-and-a-suggestion-to-log-out-and-log-back-in-if-the-error-persists",
+      "title": "Improve the error handling for API 401 'User not found' errors in the chat page. Instead of showing a raw red error banner, display a user-friendly message with a 'Retry' button that re-attempts the request, and a suggestion to log out and log back in if the error persists.",
+      "reqIds": [
+        "REQ-3"
       ],
       "version": 1
     }
   ],
   "new_feature_requests": [
     {
+      "id": "AR-1",
+      "summary": "Fix API 401 error with friendlier error handling and retry option",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
       "id": "AR-2",
-      "summary": "Review the backend main.mo actor initialization logic to ensure the isReady flag is set correctly and that the initialize() function returns an appropriate response that the frontend can detect as a success. Ensure there are no race conditions or stuck states that would prevent the actor from becoming ready.",
+      "summary": "Reduce app loading/startup time (currently ~2 minutes)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Optimize backend initialization in main.mo to ensure the initialize() function returns quickly. Avoid blocking or expensive operations during initialization that could cause the frontend to wait.",
       "reqIds": [
         "REQ-2"
       ],
       "status": "pending"
     }
   ],
-  "projectName": "Fix 'system not ready yet please wait' loading state",
+  "gameProjectType": "none",
+  "projectName": "Noventra.ai",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

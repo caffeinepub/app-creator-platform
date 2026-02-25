@@ -2,6 +2,27 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
 import type { SessionView, UserProfile } from '../backend';
 
+// Custom error class to distinguish 401/session errors from generic errors
+export class SessionExpiredError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SessionExpiredError';
+  }
+}
+
+function parseError(err: unknown): Error {
+  const msg = err instanceof Error ? err.message : String(err);
+  // Detect 401 / user not found errors
+  if (
+    msg.includes('401') ||
+    msg.toLowerCase().includes('user not found') ||
+    msg.toLowerCase().includes('api error 401')
+  ) {
+    return new SessionExpiredError('Your session has expired. Please log out and log back in.');
+  }
+  return err instanceof Error ? err : new Error(msg);
+}
+
 export function useGetCallerUserProfile() {
   const { actor, isFetching: actorFetching } = useActor();
 
@@ -9,7 +30,21 @@ export function useGetCallerUserProfile() {
     queryKey: ['currentUserProfile'],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      return actor.getCallerUserProfile();
+      try {
+        return await actor.getCallerUserProfile();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (
+          msg.toLowerCase().includes('not ready') ||
+          msg.toLowerCase().includes('system is not ready')
+        ) {
+          return null;
+        }
+        if (msg.toLowerCase().includes('unauthorized')) {
+          return null;
+        }
+        throw parseError(err);
+      }
     },
     enabled: !!actor && !actorFetching,
     retry: false,
@@ -28,11 +63,14 @@ export function useSaveCallerUserProfile() {
 
   return useMutation({
     mutationFn: async (profile: UserProfile) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.saveCallerUserProfile(profile);
+      if (!actor) throw new Error('Actor not available. Please refresh the page and try again.');
+      await actor.saveCallerUserProfile(profile);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
+    },
+    onError: () => {
+      // Do NOT invalidate on error — keep the modal open so the user sees the error
     },
   });
 }
@@ -44,7 +82,18 @@ export function useGetSessions() {
     queryKey: ['sessions'],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getSessions();
+      try {
+        return await actor.getSessions();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (
+          msg.toLowerCase().includes('not ready') ||
+          msg.toLowerCase().includes('system is not ready')
+        ) {
+          return [];
+        }
+        throw parseError(err);
+      }
     },
     enabled: !!actor && !actorFetching,
     retry: false,
@@ -58,12 +107,24 @@ export function useGetSession(sessionId: string) {
     queryKey: ['session', sessionId],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      return actor.getSession(sessionId);
+      try {
+        return await actor.getSession(sessionId);
+      } catch (err) {
+        throw parseError(err);
+      }
     },
     enabled: !!actor && !actorFetching && !!sessionId,
     retry: (failureCount, error) => {
       const msg = error instanceof Error ? error.message : String(error);
-      if (msg.includes('not found') || msg.includes('Access denied')) return false;
+      if (
+        msg.includes('not found') ||
+        msg.includes('Access denied') ||
+        msg.toLowerCase().includes('not ready') ||
+        msg.toLowerCase().includes('unauthorized') ||
+        error instanceof SessionExpiredError
+      ) {
+        return false;
+      }
       return failureCount < 2;
     },
   });
@@ -102,7 +163,11 @@ export function useAddMessage() {
       content: string;
     }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.addMessage(sessionId, role, content);
+      try {
+        return await actor.addMessage(sessionId, role, content);
+      } catch (err) {
+        throw parseError(err);
+      }
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['session', variables.sessionId] });
@@ -125,7 +190,11 @@ export function useUpdateFiles() {
       content: string;
     }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.updateFiles(sessionId, filename, content);
+      try {
+        return await actor.updateFiles(sessionId, filename, content);
+      } catch (err) {
+        throw parseError(err);
+      }
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['session', variables.sessionId] });
@@ -144,24 +213,6 @@ export function useDeleteSession() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
-    },
-  });
-}
-
-export function useInitializeSystem() {
-  const { actor } = useActor();
-
-  return useMutation({
-    mutationFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      try {
-        await actor.initialize();
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        // Ignore "already initialized" error — it means we're good
-        if (msg.includes('already initialized')) return;
-        throw err;
-      }
     },
   });
 }

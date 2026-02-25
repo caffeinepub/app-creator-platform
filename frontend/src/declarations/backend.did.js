@@ -79,7 +79,6 @@ export const idlService = IDL.Service({
   'deleteSession' : IDL.Func([IDL.Text], [], []),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-  'getReadyStatus' : IDL.Func([], [IDL.Bool], []),
   'getSession' : IDL.Func([IDL.Text], [SessionView], ['query']),
   'getSessions' : IDL.Func([], [IDL.Vec(SessionView)], ['query']),
   'getUserProfile' : IDL.Func(
@@ -87,7 +86,6 @@ export const idlService = IDL.Service({
       [IDL.Opt(UserProfile)],
       ['query'],
     ),
-  'initialize' : IDL.Func([], [IDL.Bool], []),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'updateFiles' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [], []),
@@ -168,7 +166,6 @@ export const idlFactory = ({ IDL }) => {
     'deleteSession' : IDL.Func([IDL.Text], [], []),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-    'getReadyStatus' : IDL.Func([], [IDL.Bool], []),
     'getSession' : IDL.Func([IDL.Text], [SessionView], ['query']),
     'getSessions' : IDL.Func([], [IDL.Vec(SessionView)], ['query']),
     'getUserProfile' : IDL.Func(
@@ -176,7 +173,6 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(UserProfile)],
         ['query'],
       ),
-    'initialize' : IDL.Func([], [IDL.Bool], []),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'updateFiles' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [], []),

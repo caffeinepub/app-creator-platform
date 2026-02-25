@@ -1,18 +1,18 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-25T19:49:33.930Z",
+  "generatedAt": "2026-02-25T20:36:44.605Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 2,
-    "implemented": 1,
+    "total": 3,
+    "implemented": 2,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Fix the ActorGuard component so it does not get stuck showing a 'system not ready yet, please wait' message on load. The component should correctly detect when the backend actor is available and the initialize() call has succeeded (including treating 'already initialized' and 'Unauthorized' responses as ready states), then allow the app to render normally without remaining in a perpetual loading/waiting state.",
+        "summary": "Reduce the app startup/loading time from ~2 minutes to under 10 seconds. Optimize the ActorGuard initialization flow by reducing retry delays, lowering the hard timeout threshold, and ensuring the app proceeds to render as soon as the backend responds or a minimal viable connection is established. Avoid unnecessary sequential awaits during startup.",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/components/ActorGuard.tsx"
@@ -23,16 +23,28 @@
       },
       {
         "id": "REQ-2",
-        "summary": "Review the backend main.mo actor initialization logic to ensure the isReady flag is set correctly and that the initialize() function returns an appropriate response that the frontend can detect as a success. Ensure there are no race conditions or stuck states that would prevent the actor from becoming ready.",
+        "summary": "Optimize backend initialization in main.mo to ensure the initialize() function returns quickly. Avoid blocking or expensive operations during initialization that could cause the frontend to wait.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Improve the error handling for API 401 'User not found' errors in the chat page. Instead of showing a raw red error banner, display a user-friendly message with a 'Retry' button that re-attempts the request, and a suggestion to log out and log back in if the error persists.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/ChatPage.tsx",
+          "frontend/src/hooks/useQueries.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/ChatPage.tsx",
+          "frontend/src/hooks/useQueries.ts"
+        ]
       }
     ]
   },
   "changedFiles": [
     "backend/main.mo",
-    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
@@ -42,6 +54,8 @@
     "frontend/src/components/ActorGuard.tsx",
     "frontend/src/declarations/backend.did.d.ts",
     "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/ChatPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

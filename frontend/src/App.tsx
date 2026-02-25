@@ -2,9 +2,6 @@ import { RouterProvider, createRouter, createRoute, createRootRoute, Outlet } fr
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/sonner';
-import { useInternetIdentity } from './hooks/useInternetIdentity';
-import { useGetCallerUserProfile } from './hooks/useQueries';
-import ProfileSetup from './components/ProfileSetup';
 import ActorGuard from './components/ActorGuard';
 import HomePage from './pages/HomePage';
 import SessionsPage from './pages/SessionsPage';
@@ -21,18 +18,7 @@ const queryClient = new QueryClient({
 });
 
 function RootLayout() {
-  const { identity } = useInternetIdentity();
-  const isAuthenticated = !!identity;
-  const { data: userProfile, isLoading: profileLoading, isFetched } = useGetCallerUserProfile();
-
-  const showProfileSetup = isAuthenticated && !profileLoading && isFetched && userProfile === null;
-
-  return (
-    <>
-      <Outlet />
-      {showProfileSetup && <ProfileSetup />}
-    </>
-  );
+  return <Outlet />;
 }
 
 const rootRoute = createRootRoute({
