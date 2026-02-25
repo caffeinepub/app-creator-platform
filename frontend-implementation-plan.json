@@ -1,47 +1,23 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix actor not available to start error",
+  "title": "Fix ActorGuard loading state stuck issue",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Fix the 'actor not available to start' error by ensuring the backend actor is properly initialized before any frontend queries or mutations attempt to use it",
+      "summary": "Fix ActorGuard component to correctly detect backend readiness and transition out of loading state when initialize() resolves, treating 'already initialized' and 'Unauthorized' responses as ready states",
       "acceptanceCriteria": [
-        "The application no longer throws or displays 'actor not available to start' on load or after login",
-        "Frontend queries and mutations gracefully wait for the actor to be initialized before executing",
-        "If the actor fails to initialize, the UI displays a clear error message instead of crashing",
-        "The fix works consistently on both initial page load and after Internet Identity authentication"
+        "On page load, the app no longer stays stuck on 'system not ready yet please wait'",
+        "ActorGuard transitions out of the loading state once the actor is available and initialize() resolves",
+        "'Already initialized' and 'Unauthorized' responses from initialize() are treated as a ready state",
+        "The main app UI renders after the guard clears successfully",
+        "If the backend is genuinely unavailable, an appropriate error state is shown rather than an infinite wait"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Update all React Query hooks to properly depend on both actor availability and actor fetching state. Ensure the enabled flag checks both !!actor and !actorFetching conditions for all queries and mutations. This prevents queries from executing before the actor is ready and eliminates the 'actor not available' race condition."
-        },
-        {
           "path": "frontend/src/components/ActorGuard.tsx",
-          "operation": "create",
-          "description": "Create a wrapper component that guards application content behind actor initialization. Display a loading state while the actor is being initialized (actorFetching is true), show an error message if actor initialization fails after a timeout, and only render children when the actor is available and ready. Use useActor hook to monitor actor state and provide graceful degradation."
-        },
-        {
-          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Wrap the router outlet with the ActorGuard component to prevent any route from rendering before the actor is initialized. This ensures all pages and components that depend on backend queries start with a ready actor. Keep the ProfileSetup modal logic but ensure it also waits for actor readiness."
-        },
-        {
-          "path": "frontend/src/pages/SessionsPage.tsx",
-          "operation": "modify",
-          "description": "Update the sessions query dependency to use the corrected enabled flag pattern from useQueries.ts. Ensure the page displays a loading state while actorFetching is true and only attempts to fetch sessions once the actor is confirmed available."
-        },
-        {
-          "path": "frontend/src/pages/ChatPage.tsx",
-          "operation": "modify",
-          "description": "Update the session query and mutations to properly wait for actor initialization. Add explicit checks for actorFetching state before allowing message submission or file updates. Display loading states during actor initialization to prevent user interaction before the backend is ready."
-        },
-        {
-          "path": "frontend/src/pages/NewSessionPage.tsx",
-          "operation": "modify",
-          "description": "Update the createSession mutation to depend on actor availability. Disable the form submit button while actorFetching is true to prevent session creation attempts before the actor is initialized."
+          "description": "Fix the ActorGuard component logic to properly handle initialize() responses. Ensure that when initialize() returns true, false, or throws errors containing 'already initialized' or 'Unauthorized', the component treats these as ready states and allows the app to render. Add proper error handling to distinguish between temporary loading states and genuine backend unavailability. Implement a timeout mechanism to show an error state if the backend doesn't respond within a reasonable time (e.g., 30 seconds). Update the loading state management to correctly transition from loading to ready once the actor is available and initialization completes successfully."
         }
       ]
     }

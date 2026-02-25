@@ -1,12 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Fix the "actor not available to start" error by ensuring the backend actor is fully initialized before any frontend queries or mutations attempt to use it.
+**Goal:** Fix the app getting stuck on a "system not ready yet, please wait" loading state by correcting the ActorGuard initialization detection logic and ensuring the backend properly signals readiness.
 
 **Planned changes:**
-- Add a guard/wrapper in the actor access layer that waits for the actor to be ready before allowing calls
-- Display a meaningful loading state while the actor is initializing
-- Display a clear error message to the user if the actor fails to initialize, instead of crashing
-- Ensure the fix applies consistently on both initial page load and after Internet Identity authentication
+- Update the `ActorGuard` component to correctly detect when the backend actor is available and the `initialize()` call has succeeded, transitioning out of the loading state
+- Treat "already initialized" and "Unauthorized" responses from `initialize()` as ready states in the frontend guard
+- Add an appropriate error state if the backend is genuinely unavailable instead of an infinite wait
+- Review and fix the backend `main.mo` actor initialization logic to ensure `isReady` is set correctly and `initialize()` returns a response the frontend can recognize as success
+- Eliminate any race conditions or stuck states in the backend initialization flow
 
-**User-visible outcome:** The application no longer crashes or shows "actor not available to start" errors; users see a loading indicator while the actor initializes and a clear error message if initialization fails.
+**User-visible outcome:** The app no longer gets stuck on the loading/waiting message on page load; the main UI renders normally once the actor is ready.

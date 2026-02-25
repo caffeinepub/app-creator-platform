@@ -4,21 +4,30 @@
   "summary": "New project",
   "architectural_notes": [],
   "known_issues": [
-    "Actor not available to start error encountered during deployment/startup"
+    "App shows 'system not ready yet please wait' message on load"
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-fix-the-actor-not-available-to-start-error-by-ensuring-the-backend-actor-is-properly-initialized-before-any-frontend-queries-or-mutations-attempt-to-use-it-add-a-guard-in-the-actor-access-layer-that-waits-for-the-actor-to-be-ready-before-allowing-calls-and-surfaces-a-meaningful-loading-or-error-state-to-the-user-if-the-actor-is-unavailable",
-      "title": "Fix the 'actor not available to start' error by ensuring the backend actor is properly initialized before any frontend queries or mutations attempt to use it. Add a guard in the actor access layer that waits for the actor to be ready before allowing calls, and surfaces a meaningful loading or error state to the user if the actor is unavailable.",
+      "id": "feature-fix-the-actorguard-component-so-it-does-not-get-stuck-showing-a-system-not-ready-yet-please-wait-message-on-load-the-component-should-correctly-detect-when-the-backend-actor-is-available-and-the-initialize-call-has-succeeded-including-treating-already-initialized-and-unauthorized-responses-as-ready-states-then-allow-the-app-to-render-normally-without-remaining-in-a-perpetual-loading-waiting-state",
+      "title": "Fix the ActorGuard component so it does not get stuck showing a 'system not ready yet, please wait' message on load. The component should correctly detect when the backend actor is available and the initialize() call has succeeded (including treating 'already initialized' and 'Unauthorized' responses as ready states), then allow the app to render normally without remaining in a perpetual loading/waiting state.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     }
   ],
-  "new_feature_requests": [],
-  "projectName": "Fix actor not available to start error",
+  "new_feature_requests": [
+    {
+      "id": "AR-2",
+      "summary": "Review the backend main.mo actor initialization logic to ensure the isReady flag is set correctly and that the initialize() function returns an appropriate response that the frontend can detect as a success. Ensure there are no race conditions or stuck states that would prevent the actor from becoming ready.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "status": "pending"
+    }
+  ],
+  "projectName": "Fix 'system not ready yet please wait' loading state",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

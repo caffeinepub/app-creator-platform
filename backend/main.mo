@@ -7,7 +7,9 @@ import Time "mo:core/Time";
 import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
+import Migration "migration";
 
+(with migration = Migration.run)
 actor {
   include MixinStorage();
 
@@ -77,15 +79,26 @@ actor {
     };
   };
 
-  // Mark system as ready — admin only
-  public shared ({ caller }) func initialize() : async () {
+  func checkAdmin(caller : Principal) : () {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
-      Runtime.trap("Unauthorized: Only admins can initialize the system");
+      Runtime.trap("Unauthorized: Only admins can perform this action");
     };
+  };
+
+  public shared ({ caller }) func getReadyStatus() : async Bool {
+    isReady;
+  };
+
+  // Mark system as ready — admin only
+  public shared ({ caller }) func initialize() : async Bool {
+    checkAdmin(caller);
+
     if (isReady) {
       Runtime.trap("System is already initialized");
     };
+
     isReady := true;
+    true; // Explicitly return true to signal success
   };
 
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {

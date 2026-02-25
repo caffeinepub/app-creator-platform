@@ -41,10 +41,11 @@ export interface backendInterface {
     deleteSession(sessionId: string): Promise<void>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
+    getReadyStatus(): Promise<boolean>;
     getSession(sessionId: string): Promise<SessionView>;
     getSessions(): Promise<Array<SessionView>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
-    initialize(): Promise<void>;
+    initialize(): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     updateFiles(sessionId: string, filename: string, content: string): Promise<void>;

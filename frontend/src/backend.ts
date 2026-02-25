@@ -141,10 +141,11 @@ export interface backendInterface {
     deleteSession(sessionId: string): Promise<void>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
+    getReadyStatus(): Promise<boolean>;
     getSession(sessionId: string): Promise<SessionView>;
     getSessions(): Promise<Array<SessionView>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
-    initialize(): Promise<void>;
+    initialize(): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     updateFiles(sessionId: string, filename: string, content: string): Promise<void>;
@@ -334,6 +335,20 @@ export class Backend implements backendInterface {
             return from_candid_UserRole_n12(this._uploadFile, this._downloadFile, result);
         }
     }
+    async getReadyStatus(): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getReadyStatus();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getReadyStatus();
+            return result;
+        }
+    }
     async getSession(arg0: string): Promise<SessionView> {
         if (this.processError) {
             try {
@@ -376,7 +391,7 @@ export class Backend implements backendInterface {
             return from_candid_opt_n11(this._uploadFile, this._downloadFile, result);
         }
     }
-    async initialize(): Promise<void> {
+    async initialize(): Promise<boolean> {
         if (this.processError) {
             try {
                 const result = await this.actor.initialize();
