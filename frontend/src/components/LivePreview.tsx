@@ -1,99 +1,101 @@
-import { useState, useRef, useEffect } from 'react';
-import { Monitor, Tablet, Smartphone, RefreshCw, ExternalLink, Eye } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Monitor, Tablet, Smartphone, RefreshCw, ExternalLink } from 'lucide-react';
 
 interface LivePreviewProps {
   html: string;
-  title?: string;
 }
 
-type ViewportSize = 'desktop' | 'tablet' | 'mobile';
+type Viewport = 'desktop' | 'tablet' | 'mobile';
 
-const viewportWidths: Record<ViewportSize, string> = {
+const VIEWPORT_WIDTHS: Record<Viewport, string> = {
   desktop: '100%',
   tablet: '768px',
   mobile: '375px',
 };
 
-export default function LivePreview({ html, title = 'Preview' }: LivePreviewProps) {
-  const [viewport, setViewport] = useState<ViewportSize>('desktop');
-  const [key, setKey] = useState(0);
+export default function LivePreview({ html }: LivePreviewProps) {
+  const [viewport, setViewport] = useState<Viewport>('desktop');
+  const [refreshKey, setRefreshKey] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  useEffect(() => {
-    setKey((k) => k + 1);
-  }, [html]);
-
-  const openInNewTab = () => {
+  const blobUrl = React.useMemo(() => {
     const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    return URL.createObjectURL(blob);
+  }, [html, refreshKey]);
+
+  useEffect(() => {
+    return () => {
+      URL.revokeObjectURL(blobUrl);
+    };
+  }, [blobUrl]);
+
+  const handleRefresh = () => setRefreshKey(k => k + 1);
+
+  const handleOpenNew = () => {
+    window.open(blobUrl, '_blank');
   };
 
   return (
-    <div className="glass-card rounded-2xl overflow-hidden border border-indigo-500/20">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-2/50">
-        <div className="flex items-center gap-2">
-          <Eye className="w-4 h-4 text-indigo-400" />
-          <span className="text-sm font-medium text-text-muted">{title}</span>
-        </div>
-
-        <div className="flex items-center gap-1">
-          {/* Viewport controls */}
-          <div className="flex items-center gap-0.5 bg-surface-3 rounded-lg p-0.5 mr-2">
-            {([
-              { id: 'desktop', Icon: Monitor },
-              { id: 'tablet', Icon: Tablet },
-              { id: 'mobile', Icon: Smartphone },
-            ] as { id: ViewportSize; Icon: React.ElementType }[]).map(({ id, Icon }) => (
+    <div className="flex flex-col h-full">
+      {/* Controls */}
+      <div className="flex items-center justify-between px-4 py-2.5 glass border-b border-border/40">
+        {/* Viewport Buttons */}
+        <div className="flex items-center gap-1 glass rounded-lg p-1 border border-border/40">
+          {(['desktop', 'tablet', 'mobile'] as Viewport[]).map((v) => {
+            const Icon = v === 'desktop' ? Monitor : v === 'tablet' ? Tablet : Smartphone;
+            return (
               <button
-                key={id}
-                onClick={() => setViewport(id)}
-                className={`p-1.5 rounded-md transition-all ${
-                  viewport === id
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-text-muted hover:text-text'
-                }`}
-                title={id.charAt(0).toUpperCase() + id.slice(1)}
+                key={v}
+                onClick={() => setViewport(v)}
+                className={`
+                  flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
+                  transition-all duration-200
+                  ${viewport === v
+                    ? 'bg-cyan/20 text-cyan border border-cyan/40 shadow-cyan-glow-sm'
+                    : 'text-text-muted hover:text-text-primary'
+                  }
+                `}
               >
                 <Icon className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline capitalize">{v}</span>
               </button>
-            ))}
-          </div>
+            );
+          })}
+        </div>
 
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setKey((k) => k + 1)}
-            className="p-1.5 rounded-md text-text-muted hover:text-text transition-colors"
+            onClick={handleRefresh}
+            className="p-1.5 rounded-md text-text-muted hover:text-brand hover:bg-brand/10 transition-all duration-200"
             title="Refresh"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
+            <RefreshCw className="w-4 h-4" />
           </button>
-
           <button
-            onClick={openInNewTab}
-            className="p-1.5 rounded-md text-text-muted hover:text-text transition-colors"
+            onClick={handleOpenNew}
+            className="p-1.5 rounded-md text-text-muted hover:text-cyan hover:bg-cyan/10 transition-all duration-200"
             title="Open in new tab"
           >
-            <ExternalLink className="w-3.5 h-3.5" />
+            <ExternalLink className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Preview area */}
-      <div className="bg-surface-3/30 p-4 flex justify-center min-h-[500px]">
+      {/* Preview Container */}
+      <div className="flex-1 overflow-auto bg-surface flex items-start justify-center p-4">
         <div
-          className="transition-all duration-300 w-full"
-          style={{ maxWidth: viewportWidths[viewport] }}
+          className="transition-all duration-300 h-full"
+          style={{ width: VIEWPORT_WIDTHS[viewport], minHeight: '400px' }}
         >
           <iframe
-            key={key}
             ref={iframeRef}
-            srcDoc={html}
-            className="w-full rounded-xl border border-border/50 shadow-xl"
-            style={{ height: '520px' }}
+            key={refreshKey}
+            src={blobUrl}
             sandbox="allow-scripts allow-same-origin"
-            title={title}
+            className="w-full h-full min-h-[400px] rounded-lg border border-border/40"
+            style={{ boxShadow: '0 0 20px oklch(0.72 0.18 195 / 0.15)' }}
+            title="Live Preview"
           />
         </div>
       </div>

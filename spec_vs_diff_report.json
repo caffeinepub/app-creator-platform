@@ -1,49 +1,15 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-24T21:56:06.601Z",
-  "summary": "The diff implements a comprehensive rebuild of the Noventra.Ai landing page generator. All major requirements from REQ-1 and REQ-2 appear to be addressed: session management (create, list, delete), chat interface with code block rendering, AI-generated landing page scaffolds, live preview, backend persistence with owner-based access control, and the full dark theme design system with OKLCH tokens, glassmorphism, glow effects, and the required typography. No significant missing requirements or hallucinated features were identified.",
+  "generatedAt": "2026-02-25T15:45:08.357Z",
+  "summary": "The diff implements REQ-1 by removing the Noventra.ai watermark function from llmService.ts and removing the attribution line from the HomePage footer. Both acceptance criteria appear to be satisfied: the watermark string/function is removed from llmService.ts and the footer attribution text is removed from HomePage.tsx. No backend files were modified.",
   "missing_requirements": [],
-  "hallucinated_features": [
-    {
-      "description": "ProfileSetup modal for first-time user name entry",
-      "reason": "The build request does not mention a user profile setup flow or name collection modal. The ProfileSetup component and associated getCallerUserProfile/saveCallerUserProfile backend methods were not requested in the spec.",
-      "evidence": [
-        "frontend/src/components/ProfileSetup.tsx",
-        "backend/main.mo",
-        "frontend/src/hooks/useQueries.ts"
-      ]
-    },
-    {
-      "description": "urlParams utility with admin token / caffeineAdminToken handling",
-      "reason": "The build request makes no mention of an admin token, caffeineAdminToken, or URL parameter persistence utilities. This appears to be carried over from an unrelated template.",
-      "evidence": [
-        "frontend/src/utils/urlParams.ts",
-        "frontend/src/hooks/useActor.ts"
-      ]
-    }
-  ],
-  "confidence": 0.82,
+  "hallucinated_features": [],
+  "confidence": 0.92,
   "changed_files": [
-    "backend/main.mo",
-    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/App.tsx",
-    "frontend/src/components/CodeBlock.tsx",
-    "frontend/src/components/LivePreview.tsx",
-    "frontend/src/components/LoginButton.tsx",
-    "frontend/src/components/MessageBubble.tsx",
-    "frontend/src/components/ProfileSetup.tsx",
-    "frontend/src/hooks/useActor.ts",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/index.css",
-    "frontend/src/pages/ChatPage.tsx",
     "frontend/src/pages/HomePage.tsx",
-    "frontend/src/pages/NewSessionPage.tsx",
-    "frontend/src/pages/SessionsPage.tsx",
     "frontend/src/services/llmService.ts",
-    "frontend/src/utils/urlParams.ts",
-    "frontend/tailwind.config.js",
     "project_state.json"
   ]
 }

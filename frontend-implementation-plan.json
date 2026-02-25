@@ -1,138 +1,31 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Rebuild Noventra.Ai Landing Page Generator Frontend",
+  "title": "Remove 'Made by you' branding from bottom of app",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Rebuild complete landing page generator functionality with session management, chat interface, HTML/CSS scaffold generation, and live preview rendering",
+      "summary": "Remove all 'Made by you' / 'Made with AI' branding and watermarks from the application footer and generated HTML output",
       "acceptanceCriteria": [
-        "Users can create new sessions with a project name and project type selection",
-        "Users can view a list of past sessions with project type icons and timestamps",
-        "Users can delete sessions",
-        "Chat interface displays messages with code block rendering",
-        "AI assistant generates landing page HTML/CSS scaffolds for the 'Landing Page' project type",
-        "Generated landing pages are rendered as a live visual preview within the chat or session view",
-        "Sessions and messages are persisted in the backend",
-        "Backend uses owner-based access control so users only see their own sessions"
+        "No 'Made by', 'Made with', or similar attribution/watermark text is visible at the bottom of any page in the app.",
+        "The Noventra.ai watermark string in frontend/src/services/llmService.ts is removed or left empty.",
+        "All other functionality and layout remain unaffected."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/HomePage.tsx",
-          "operation": "modify",
-          "description": "Update the marketing landing page to include proper navigation to Sessions and New Session pages, ensuring the 'Get Started' CTA links to the new session creation flow. Use the authorization component to show login/logout status and conditionally display authenticated user actions."
-        },
-        {
-          "path": "frontend/src/pages/SessionsPage.tsx",
-          "operation": "modify",
-          "description": "Enhance sessions list page to display all user sessions with project type icons, timestamps, and delete functionality. Use the authorization component's access control to ensure users only see their own sessions. Wire navigation to individual chat sessions and to the new session creation page. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/pages/NewSessionPage.tsx",
-          "operation": "modify",
-          "description": "Refine new session creation page to collect project name and project type (including 'Landing Page' type). Use the authorization component to ensure only authenticated users can create sessions. On successful creation, navigate to the chat interface for that session. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/pages/ChatPage.tsx",
-          "operation": "modify",
-          "description": "Enhance chat interface to display session messages with proper role rendering (user vs assistant), handle user message input, integrate with llmService for AI responses, and persist all messages to the backend. Add live preview rendering capability for generated landing page HTML/CSS scaffolds. Use the authorization component to ensure only the session owner can access and interact with their chat. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/MessageBubble.tsx",
-          "operation": "modify",
-          "description": "Extend message rendering to detect and display generated landing page HTML/CSS as a live iframe preview alongside code blocks. Maintain existing code block parsing and animation behavior."
-        },
-        {
-          "path": "frontend/src/components/CodeBlock.tsx",
-          "operation": "modify",
-          "description": "Ensure code block component properly highlights HTML and CSS syntax for generated landing page scaffolds. Maintain macOS-style terminal chrome and clipboard copy functionality."
-        },
-        {
-          "path": "frontend/src/components/LivePreview.tsx",
-          "operation": "create",
-          "description": "Create a new component to render generated landing page HTML/CSS in an isolated iframe with responsive viewport controls. Accept HTML and CSS content as props and sanitize before rendering. Provide visual container styling consistent with the Noventra.Ai design system."
-        },
-        {
-          "path": "frontend/src/components/LoginButton.tsx",
-          "operation": "create",
-          "description": "Create a login/logout button component following the authorization component's usage instructions. Handle Internet Identity authentication flow, display login status, and clear query cache on logout. Use the useInternetIdentity hook and integrate with the authorization component's access control. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/ProfileSetup.tsx",
-          "operation": "create",
-          "description": "Create a user profile setup modal that appears on first login when the user has no profile. Use the authorization component's getCallerUserProfile and saveCallerUserProfile methods to check and save user profile. Follow the usage instructions to prevent profile setup modal flash. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Extend React Query hooks to include authorization-aware session and message CRUD operations. Add queries for getCallerUserProfile, saveCallerUserProfile, and getUserProfile. Ensure all session queries respect owner-based access control by using the authorization component's backend methods. Invalidate user profile cache on logout. Verify the component's usage instructions before implementing."
-        },
-        {
           "path": "frontend/src/services/llmService.ts",
           "operation": "modify",
-          "description": "Enhance AI response generation to produce complete HTML/CSS landing page scaffolds for the 'Landing Page' project type. Ensure generated files include both HTML structure and CSS styling suitable for live preview rendering. Maintain existing GeneratedFile and AIResponse interfaces."
+          "description": "Remove or empty the Noventra.ai watermark string constant that gets injected into AI-generated HTML output. Locate the watermark definition (likely a string constant containing 'Made by' or 'Noventra.ai' attribution) and either delete it entirely or set it to an empty string. Ensure the generateHTML function or similar methods no longer append watermark text to generated content."
         },
         {
           "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Wire the ProfileSetup modal into the app root so it appears after successful login for users without a profile. Ensure LoginButton is accessible from the navigation or header. Use the authorization component's access control hooks to conditionally render authenticated routes. Verify the component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Preserve Noventra.Ai dark theme design system with Space Grotesk/Inter/JetBrains Mono typography, OKLCH color tokens, glassmorphism, and glow effects across all pages",
-      "acceptanceCriteria": [
-        "Dark theme with OKLCH color tokens is applied globally",
-        "Glassmorphism card styles and glow effects are present on interactive elements",
-        "Space Grotesk, Inter, and JetBrains Mono fonts are loaded and used appropriately",
-        "All pages (Home, Sessions, New Session, Chat) are visually consistent with the Noventra.Ai brand"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/index.css",
-          "operation": "modify",
-          "description": "Ensure all OKLCH color tokens, glassmorphism utilities (.glass, .glass-card, .glow-effect), and font imports (Space Grotesk, Inter, JetBrains Mono) are properly defined and available globally. Add any missing utility classes needed for consistent branding across new components (LivePreview, LoginButton, ProfileSetup)."
-        },
-        {
-          "path": "frontend/tailwind.config.js",
-          "operation": "modify",
-          "description": "Verify that custom OKLCH color tokens (brand-dark, brand-accent, brand-glow variants) and typography settings for Space Grotesk, Inter, and JetBrains Mono are correctly extended in the Tailwind theme. Ensure border radii and other design tokens match the Noventra.Ai visual identity."
+          "description": "Review the shared nav layout and remove any footer component or branding element displaying 'Made by you' text at the bottom of the application. If a Footer component is rendered, remove it from the layout. Ensure the navigation layout only contains Logo, ShareButton, and LoginButton without any attribution footer."
         },
         {
           "path": "frontend/src/pages/HomePage.tsx",
           "operation": "modify",
-          "description": "Apply glassmorphism card styles, glow effects, and consistent Noventra.Ai branding to all sections of the marketing landing page. Ensure animated background glows and fade-in effects remain intact."
-        },
-        {
-          "path": "frontend/src/pages/SessionsPage.tsx",
-          "operation": "modify",
-          "description": "Apply glassmorphism card styles to session list items, ensuring consistent use of OKLCH color tokens and glow effects on hover states. Maintain dark theme aesthetic throughout."
-        },
-        {
-          "path": "frontend/src/pages/NewSessionPage.tsx",
-          "operation": "modify",
-          "description": "Apply glassmorphism card styles to the new session form, using OKLCH color tokens for inputs and buttons. Ensure project type selection cards display consistent glow effects and typography."
-        },
-        {
-          "path": "frontend/src/pages/ChatPage.tsx",
-          "operation": "modify",
-          "description": "Apply glassmorphism styling to chat message containers and input area. Ensure user and assistant message bubbles use OKLCH color tokens and maintain dark theme consistency. Add glow effects to interactive elements."
-        },
-        {
-          "path": "frontend/src/components/LivePreview.tsx",
-          "operation": "modify",
-          "description": "Style the live preview container with glassmorphism and glow effects consistent with the Noventra.Ai brand. Use OKLCH color tokens for borders and backgrounds."
-        },
-        {
-          "path": "frontend/src/components/LoginButton.tsx",
-          "operation": "modify",
-          "description": "Style the login/logout button with glassmorphism effects, OKLCH color tokens, and glow on hover. Ensure typography uses Space Grotesk or Inter as appropriate."
-        },
-        {
-          "path": "frontend/src/components/ProfileSetup.tsx",
-          "operation": "modify",
-          "description": "Style the profile setup modal with glassmorphism card styles, OKLCH color tokens, and consistent Noventra.Ai branding. Ensure form inputs and buttons use the global design system."
+          "description": "Remove any 'Made by you' or attribution text from the marketing landing page footer section. Check the bottom of the page for footer elements containing branding text and delete them, ensuring the CTA buttons and feature sections remain intact."
         }
       ]
     }

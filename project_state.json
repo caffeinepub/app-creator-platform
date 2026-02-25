@@ -1,36 +1,29 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Landing page generator app with live preview feature. Recurring canister stopping issue with wxhw5-jyaaa-aaaam-ahg7a-cai; rebuilding as fresh project to get a new canister assigned.",
-  "architectural_notes": [
-    "App is deployed on DFINITY/ICP infrastructure using canisters. Canister wxhw5-jyaaa-aaaam-ahg7a-cai repeatedly stops after deployment, likely due to insufficient cycles.",
-    "Rebuilding as a fresh project to obtain a new canister assignment and avoid the stopped canister issue."
-  ],
-  "known_issues": [
-    "Canister wxhw5-jyaaa-aaaam-ahg7a-cai keeps stopping after deployment (Reject code 5), suspected cycles issue."
-  ],
-  "isFixRequest": true,
+  "summary": "New project",
+  "architectural_notes": [],
+  "known_issues": [],
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-rebuild-the-complete-noventra-ai-landing-page-generator-application-from-scratch-as-a-fresh-project-preserving-all-existing-functionality-session-management-create-list-delete-sessions-chat-interface-with-ai-assistant-landing-page-html-css-scaffold-generation-and-live-preview-of-generated-landing-pages",
-      "title": "Rebuild the complete Noventra.Ai landing page generator application from scratch as a fresh project, preserving all existing functionality: session management (create, list, delete sessions), chat interface with AI assistant, landing page HTML/CSS scaffold generation, and live preview of generated landing pages.",
+      "id": "feature-remove-the-made-by-you-or-equivalent-made-with-ai-watermark-branding-element-displayed-at-the-bottom-of-the-app-including-any-footer-badges-attribution-text-or-watermark-injected-into-ai-generated-html-output-in-llmservice-ts",
+      "title": "Remove the 'Made by you' (or equivalent 'Made with AI' / watermark) branding element displayed at the bottom of the app, including any footer badges, attribution text, or watermark injected into AI-generated HTML output in llmService.ts.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
-    },
-    {
-      "id": "feature-preserve-the-existing-dark-theme-design-system-space-grotesk-inter-jetbrains-mono-typography-oklch-color-tokens-glassmorphism-card-styles-glow-effects-and-the-overall-noventra-ai-visual-identity-across-all-pages-home-sessions-new-session-chat",
-      "title": "Preserve the existing dark theme design system: Space Grotesk / Inter / JetBrains Mono typography, OKLCH color tokens, glassmorphism card styles, glow effects, and the overall Noventra.Ai visual identity across all pages (Home, Sessions, New Session, Chat).",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "version": 1
     }
   ],
-  "new_feature_requests": [],
-  "gameProjectType": "none",
-  "projectName": "Noventra AI",
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Remove 'Made with [AI]' branding from the bottom of the app",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "projectName": "Remove 'Made by you' branding from bottom of app",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

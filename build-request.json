@@ -1,61 +1,34 @@
 {
   "kind": "build_request",
-  "title": "Rebuild Noventra.Ai landing page generator as a fresh project",
-  "projectName": "Noventra AI",
+  "title": "Remove 'Made by you' branding from bottom of app",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Rebuild the complete Noventra.Ai landing page generator application from scratch as a fresh project, preserving all existing functionality: session management (create, list, delete sessions), chat interface with AI assistant, landing page HTML/CSS scaffold generation, and live preview of generated landing pages.",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-rebuild"
-        ],
-        "quotes": [
-          "yes you can do that"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Users can create new sessions with a project name and project type selection",
-        "Users can view a list of past sessions with project type icons and timestamps",
-        "Users can delete sessions",
-        "Chat interface displays messages with code block rendering",
-        "AI assistant generates landing page HTML/CSS scaffolds for the 'Landing Page' project type",
-        "Generated landing pages are rendered as a live visual preview within the chat or session view",
-        "Sessions and messages are persisted in the backend",
-        "Backend uses owner-based access control so users only see their own sessions"
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Preserve the existing dark theme design system: Space Grotesk / Inter / JetBrains Mono typography, OKLCH color tokens, glassmorphism card styles, glow effects, and the overall Noventra.Ai visual identity across all pages (Home, Sessions, New Session, Chat).",
+      "text": "Remove the 'Made by you' (or equivalent 'Made with AI' / watermark) branding element displayed at the bottom of the app, including any footer badges, attribution text, or watermark injected into AI-generated HTML output in llmService.ts.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-rebuild"
+          "msg-latest"
         ],
         "quotes": [
-          "yes you can do that"
+          "remove made my you at the bottom"
         ]
       },
       "acceptanceCriteria": [
-        "Dark theme with OKLCH color tokens is applied globally",
-        "Glassmorphism card styles and glow effects are present on interactive elements",
-        "Space Grotesk, Inter, and JetBrains Mono fonts are loaded and used appropriately",
-        "All pages (Home, Sessions, New Session, Chat) are visually consistent with the Noventra.Ai brand"
+        "No 'Made by', 'Made with', or similar attribution/watermark text is visible at the bottom of any page in the app.",
+        "The Noventra.ai watermark string in frontend/src/services/llmService.ts is removed or left empty.",
+        "All other functionality and layout remain unaffected."
       ]
     }
   ],
   "constraints": [
-    "All Motoko logic must remain in a single main actor (backend/main.mo)",
-    "Do not use the stopped canister wxhw5-jyaaa-aaaam-ahg7a-cai — this is a fresh rebuild to obtain a new canister",
-    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui"
+    "Do not modify any files listed in frontend.immutablePaths.",
+    "Do not alter any backend logic or data models."
   ],
   "nonGoals": [
-    "Migrating or recovering data from the old stopped canister",
-    "Debugging the cycles issue on wxhw5-jyaaa-aaaam-ahg7a-cai",
-    "Adding new features beyond what existed in Version 5"
+    "Removing or changing the Noventra.ai logo or brand identity in the header/navbar.",
+    "Any changes to backend code or API endpoints."
   ],
   "imageRequirements": {
     "required": [],

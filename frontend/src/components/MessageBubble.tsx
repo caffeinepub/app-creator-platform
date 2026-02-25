@@ -1,32 +1,25 @@
-import { useEffect, useRef, useState } from 'react';
-import { Bot, User } from 'lucide-react';
+import React from 'react';
+import { Sparkles, User } from 'lucide-react';
 import CodeBlock from './CodeBlock';
-import LivePreview from './LivePreview';
+import type { Message } from '../backend';
 
 interface MessageBubbleProps {
-  role: 'user' | 'assistant';
-  content: string;
-  showPreview?: boolean;
+  message: Message;
+  onShowPreview?: (html: string) => void;
 }
 
-interface ParsedSegment {
-  type: 'text' | 'code';
-  content: string;
-  language?: string;
-  filename?: string;
-}
-
-function parseContent(content: string): ParsedSegment[] {
-  const segments: ParsedSegment[] = [];
-  const codeBlockRegex = /```(\w+)?(?:\s+(?:filename=|filepath=)?["']?([^\s"'\n]+)["']?)?\n([\s\S]*?)```/g;
+function parseMessageContent(content: string): Array<{ type: 'text' | 'code'; content: string; language?: string; filename?: string }> {
+  const parts: Array<{ type: 'text' | 'code'; content: string; language?: string; filename?: string }> = [];
+  const codeBlockRegex = /```(\w+)?(?:\s+([^\n]+))?\n([\s\S]*?)```/g;
   let lastIndex = 0;
   let match;
 
   while ((match = codeBlockRegex.exec(content)) !== null) {
     if (match.index > lastIndex) {
-      segments.push({ type: 'text', content: content.slice(lastIndex, match.index) });
+      const text = content.slice(lastIndex, match.index).trim();
+      if (text) parts.push({ type: 'text', content: text });
     }
-    segments.push({
+    parts.push({
       type: 'code',
       language: match[1] || 'text',
       filename: match[2],
@@ -36,104 +29,83 @@ function parseContent(content: string): ParsedSegment[] {
   }
 
   if (lastIndex < content.length) {
-    segments.push({ type: 'text', content: content.slice(lastIndex) });
+    const text = content.slice(lastIndex).trim();
+    if (text) parts.push({ type: 'text', content: text });
   }
 
-  return segments;
+  return parts.length > 0 ? parts : [{ type: 'text', content }];
 }
 
-function extractHtmlFromContent(content: string): string | null {
-  const htmlMatch =
-    content.match(/```(?:html)?\s+(?:filename=|filepath=)?["']?([^\s"'\n]*\.html[^\s"'\n]*)["']?\n([\s\S]*?)```/i);
-  if (htmlMatch) return htmlMatch[2].trim();
-
-  const genericHtmlMatch = content.match(/```html\n([\s\S]*?)```/i);
-  if (genericHtmlMatch) return genericHtmlMatch[1].trim();
-
-  return null;
+function extractHtml(content: string): string | null {
+  const htmlMatch = content.match(/```html(?:\s+[^\n]+)?\n([\s\S]*?)```/);
+  return htmlMatch ? htmlMatch[1].trim() : null;
 }
 
-function renderText(text: string) {
-  const lines = text.split('\n');
-  return lines.map((line, i) => {
-    const parts = line.split(/\*\*(.*?)\*\*/g);
-    return (
-      <span key={i}>
-        {parts.map((part, j) =>
-          j % 2 === 1 ? (
-            <strong key={j} className="text-text font-semibold">{part}</strong>
-          ) : (
-            part
-          )
-        )}
-        {i < lines.length - 1 && <br />}
-      </span>
-    );
-  });
-}
-
-export default function MessageBubble({ role, content, showPreview = true }: MessageBubbleProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(frame);
-  }, []);
-
-  const isUser = role === 'user';
-  const segments = parseContent(content);
-  const htmlContent = !isUser && showPreview ? extractHtmlFromContent(content) : null;
+export default function MessageBubble({ message, onShowPreview }: MessageBubbleProps) {
+  const isUser = message.role === 'user';
+  const parts = parseMessageContent(message.content);
+  const htmlContent = !isUser ? extractHtml(message.content) : null;
 
   return (
-    <div
-      ref={ref}
-      className={`flex gap-3 transition-all duration-300 ${
-        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-      } ${isUser ? 'flex-row-reverse' : 'flex-row'}`}
-    >
+    <div className={`flex gap-3 animate-fade-in ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
       {/* Avatar */}
-      <div
-        className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-          isUser
-            ? 'bg-indigo-600'
-            : 'bg-gradient-to-br from-indigo-500/30 to-cyan-500/30 border border-indigo-500/30'
-        }`}
+      <div className={`
+        flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center
+        ${isUser
+          ? 'bg-surface-raised border border-border/60'
+          : 'border border-brand/40'
+        }
+      `}
+        style={!isUser ? {
+          background: 'linear-gradient(135deg, oklch(0.65 0.22 25 / 0.3), oklch(0.72 0.18 195 / 0.2))',
+          boxShadow: '0 0 10px oklch(0.65 0.22 25 / 0.3)',
+        } : {}}
       >
-        {isUser ? (
-          <User className="w-4 h-4 text-white" />
-        ) : (
-          <Bot className="w-4 h-4 text-indigo-400" />
-        )}
+        {isUser
+          ? <User className="w-4 h-4 text-text-secondary" />
+          : <Sparkles className="w-4 h-4 text-brand" />
+        }
       </div>
 
       {/* Content */}
       <div className={`flex-1 max-w-[85%] ${isUser ? 'items-end' : 'items-start'} flex flex-col gap-2`}>
-        {isUser ? (
-          <div className="bg-indigo-600/20 border border-indigo-500/30 rounded-2xl rounded-tr-sm px-4 py-3 text-sm text-text">
-            {content}
-          </div>
-        ) : (
-          <div className="w-full space-y-2">
-            {segments.map((seg, i) =>
-              seg.type === 'code' ? (
-                <CodeBlock
-                  key={i}
-                  code={seg.content}
-                  language={seg.language}
-                  filename={seg.filename}
-                />
-              ) : (
-                <div key={i} className="text-sm text-text-muted leading-relaxed">
-                  {renderText(seg.content)}
-                </div>
-              )
-            )}
+        {parts.map((part, i) => (
+          part.type === 'code' ? (
+            <div key={i} className="w-full">
+              <CodeBlock
+                code={part.content}
+                language={part.language}
+                filename={part.filename}
+              />
+            </div>
+          ) : (
+            <div
+              key={i}
+              className={`
+                px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap
+                ${isUser
+                  ? 'rounded-tr-sm text-white'
+                  : 'rounded-tl-sm glass border border-border/40 text-text-primary'
+                }
+              `}
+              style={isUser ? {
+                background: 'linear-gradient(135deg, oklch(0.65 0.22 25), oklch(0.55 0.22 20))',
+                boxShadow: '0 0 15px oklch(0.65 0.22 25 / 0.3)',
+              } : {}}
+            >
+              {part.content}
+            </div>
+          )
+        ))}
 
-            {htmlContent && (
-              <LivePreview html={htmlContent} title="Live Preview" />
-            )}
-          </div>
+        {/* Preview Button */}
+        {htmlContent && onShowPreview && (
+          <button
+            onClick={() => onShowPreview(htmlContent)}
+            className="text-xs text-cyan hover:text-cyan-light border border-cyan/30 hover:border-cyan/60 px-3 py-1.5 rounded-lg glass transition-all duration-200 hover:shadow-cyan-glow-sm"
+          >
+            👁 Show Live Preview
+          </button>
         )}
       </div>
     </div>

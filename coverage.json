@@ -1,108 +1,38 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-24T21:56:06.604Z",
+  "generatedAt": "2026-02-25T15:45:08.360Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 2,
-    "implemented": 2,
+    "total": 1,
+    "implemented": 1,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Rebuild the complete Noventra.Ai landing page generator application from scratch as a fresh project, preserving all existing functionality: session management (create, list, delete sessions), chat interface with AI assistant, landing page HTML/CSS scaffold generation, and live preview of generated landing pages.",
+        "summary": "Remove the 'Made by you' (or equivalent 'Made with AI' / watermark) branding element displayed at the bottom of the app, including any footer badges, attribution text, or watermark injected into AI-generated HTML output in llmService.ts.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/HomePage.tsx",
-          "frontend/src/pages/SessionsPage.tsx",
-          "frontend/src/pages/NewSessionPage.tsx",
-          "frontend/src/pages/ChatPage.tsx",
-          "frontend/src/components/MessageBubble.tsx",
-          "frontend/src/components/CodeBlock.tsx",
-          "frontend/src/components/LivePreview.tsx",
-          "frontend/src/components/LoginButton.tsx",
-          "frontend/src/components/ProfileSetup.tsx",
-          "frontend/src/hooks/useQueries.ts",
           "frontend/src/services/llmService.ts",
-          "frontend/src/App.tsx"
+          "frontend/src/App.tsx",
+          "frontend/src/pages/HomePage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/HomePage.tsx",
-          "frontend/src/pages/SessionsPage.tsx",
-          "frontend/src/pages/NewSessionPage.tsx",
-          "frontend/src/pages/ChatPage.tsx",
-          "frontend/src/components/MessageBubble.tsx",
-          "frontend/src/components/CodeBlock.tsx",
-          "frontend/src/components/LivePreview.tsx",
-          "frontend/src/components/LoginButton.tsx",
-          "frontend/src/components/ProfileSetup.tsx",
-          "frontend/src/hooks/useQueries.ts",
           "frontend/src/services/llmService.ts",
-          "frontend/src/App.tsx"
-        ]
-      },
-      {
-        "id": "REQ-2",
-        "summary": "Preserve the existing dark theme design system: Space Grotesk / Inter / JetBrains Mono typography, OKLCH color tokens, glassmorphism card styles, glow effects, and the overall Noventra.Ai visual identity across all pages (Home, Sessions, New Session, Chat).",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/index.css",
-          "frontend/tailwind.config.js",
-          "frontend/src/pages/HomePage.tsx",
-          "frontend/src/pages/SessionsPage.tsx",
-          "frontend/src/pages/NewSessionPage.tsx",
-          "frontend/src/pages/ChatPage.tsx",
-          "frontend/src/components/LivePreview.tsx",
-          "frontend/src/components/LoginButton.tsx",
-          "frontend/src/components/ProfileSetup.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/index.css",
-          "frontend/tailwind.config.js",
-          "frontend/src/pages/HomePage.tsx",
-          "frontend/src/pages/SessionsPage.tsx",
-          "frontend/src/pages/NewSessionPage.tsx",
-          "frontend/src/pages/ChatPage.tsx",
-          "frontend/src/components/LivePreview.tsx",
-          "frontend/src/components/LoginButton.tsx",
-          "frontend/src/components/ProfileSetup.tsx"
+          "frontend/src/pages/HomePage.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
-    "backend/authorization/MixinAuthorization.mo",
-    "backend/authorization/access-control.mo",
-    "backend/http-outcalls/outcall.mo",
-    "backend/main.mo",
-    "backend/migration.mo",
     "build-request.json",
-    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/App.tsx",
-    "frontend/src/backend.d.ts",
-    "frontend/src/backend.ts",
-    "frontend/src/components/CodeBlock.tsx",
-    "frontend/src/components/LivePreview.tsx",
-    "frontend/src/components/LoginButton.tsx",
-    "frontend/src/components/MessageBubble.tsx",
-    "frontend/src/components/ProfileSetup.tsx",
-    "frontend/src/declarations/backend.did.d.ts",
-    "frontend/src/declarations/backend.did.js",
-    "frontend/src/hooks/useActor.ts",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/index.css",
-    "frontend/src/pages/ChatPage.tsx",
     "frontend/src/pages/HomePage.tsx",
-    "frontend/src/pages/NewSessionPage.tsx",
-    "frontend/src/pages/SessionsPage.tsx",
     "frontend/src/services/llmService.ts",
-    "frontend/src/utils/urlParams.ts",
-    "frontend/tailwind.config.js",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

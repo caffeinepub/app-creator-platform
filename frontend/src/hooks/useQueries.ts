@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import type { SessionView, UserProfile } from '../backend';
+import type { UserProfile, SessionView } from '../backend';
 
 export function useGetCallerUserProfile() {
   const { actor, isFetching: actorFetching } = useActor();
@@ -29,7 +29,7 @@ export function useSaveCallerUserProfile() {
   return useMutation({
     mutationFn: async (profile: UserProfile) => {
       if (!actor) throw new Error('Actor not available');
-      await actor.saveCallerUserProfile(profile);
+      return actor.saveCallerUserProfile(profile);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
@@ -38,7 +38,7 @@ export function useSaveCallerUserProfile() {
 }
 
 export function useGetSessions() {
-  const { actor, isFetching } = useActor();
+  const { actor, isFetching: actorFetching } = useActor();
 
   return useQuery<SessionView[]>({
     queryKey: ['sessions'],
@@ -46,12 +46,12 @@ export function useGetSessions() {
       if (!actor) return [];
       return actor.getSessions();
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !actorFetching,
   });
 }
 
 export function useGetSession(sessionId: string) {
-  const { actor, isFetching } = useActor();
+  const { actor, isFetching: actorFetching } = useActor();
 
   return useQuery<SessionView>({
     queryKey: ['session', sessionId],
@@ -59,17 +59,17 @@ export function useGetSession(sessionId: string) {
       if (!actor) throw new Error('Actor not available');
       return actor.getSession(sessionId);
     },
-    enabled: !!actor && !isFetching && !!sessionId,
+    enabled: !!actor && !actorFetching && !!sessionId,
   });
 }
 
 export function useCreateSession() {
-  const { actor, isFetching } = useActor();
+  const { actor } = useActor();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ name, projectType }: { name: string; projectType: string }) => {
-      if (!actor || isFetching) throw new Error('Actor not ready');
+      if (!actor) throw new Error('Actor not available');
       return actor.createSession(name, projectType);
     },
     onSuccess: () => {
@@ -85,7 +85,7 @@ export function useDeleteSession() {
   return useMutation({
     mutationFn: async (sessionId: string) => {
       if (!actor) throw new Error('Actor not available');
-      await actor.deleteSession(sessionId);
+      return actor.deleteSession(sessionId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
@@ -100,7 +100,7 @@ export function useAddMessage() {
   return useMutation({
     mutationFn: async ({ sessionId, role, content }: { sessionId: string; role: string; content: string }) => {
       if (!actor) throw new Error('Actor not available');
-      await actor.addMessage(sessionId, role, content);
+      return actor.addMessage(sessionId, role, content);
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['session', variables.sessionId] });
@@ -115,7 +115,7 @@ export function useUpdateFiles() {
   return useMutation({
     mutationFn: async ({ sessionId, filename, content }: { sessionId: string; filename: string; content: string }) => {
       if (!actor) throw new Error('Actor not available');
-      await actor.updateFiles(sessionId, filename, content);
+      return actor.updateFiles(sessionId, filename, content);
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['session', variables.sessionId] });
