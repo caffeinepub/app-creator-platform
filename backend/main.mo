@@ -1,12 +1,14 @@
-import List "mo:core/List";
 import Map "mo:core/Map";
+import List "mo:core/List";
 import Principal "mo:core/Principal";
 import Text "mo:core/Text";
-import Runtime "mo:core/Runtime";
 import Time "mo:core/Time";
+import Runtime "mo:core/Runtime";
 import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
+
+
 
 actor {
   include MixinStorage();
@@ -14,7 +16,11 @@ actor {
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
 
-  let sessionMap = Map.empty<Text, SessionData>();
+  public type UserProfile = {
+    name : Text;
+  };
+
+  let userProfiles = Map.empty<Principal, UserProfile>();
 
   type FileData = {
     filename : Text;
@@ -49,11 +55,7 @@ actor {
     owner : Principal;
   };
 
-  public type UserProfile = {
-    name : Text;
-  };
-
-  let userProfiles = Map.empty<Principal, UserProfile>();
+  let sessionMap = Map.empty<Text, SessionData>();
 
   func toView(session : SessionData) : SessionView {
     {
@@ -69,7 +71,7 @@ actor {
   };
 
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can get profiles");
     };
     userProfiles.get(caller);
@@ -83,14 +85,14 @@ actor {
   };
 
   public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can save profiles");
     };
     userProfiles.add(caller, profile);
   };
 
   public shared ({ caller }) func createSession(name : Text, projectType : Text) : async ?SessionView {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can create sessions");
     };
 
@@ -115,7 +117,7 @@ actor {
   };
 
   public query ({ caller }) func getSessions() : async [SessionView] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can list sessions");
     };
     let filteredIter = sessionMap.entries().filter(
@@ -127,7 +129,7 @@ actor {
   };
 
   public query ({ caller }) func getSession(sessionId : Text) : async SessionView {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can get sessions");
     };
     switch (sessionMap.get(sessionId)) {
@@ -140,7 +142,7 @@ actor {
   };
 
   public shared ({ caller }) func addMessage(sessionId : Text, role : Text, content : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can add messages");
     };
     switch (sessionMap.get(sessionId)) {
@@ -169,7 +171,7 @@ actor {
   };
 
   public shared ({ caller }) func updateFiles(sessionId : Text, filename : Text, content : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can update files");
     };
     switch (sessionMap.get(sessionId)) {
@@ -197,7 +199,7 @@ actor {
   };
 
   public shared ({ caller }) func deleteSession(sessionId : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can delete sessions");
     };
     switch (sessionMap.get(sessionId)) {

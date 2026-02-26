@@ -1,88 +1,117 @@
-import React from 'react';
-import { useNavigate } from '@tanstack/react-router';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useGetSessions, useDeleteSession } from '../hooks/useQueries';
-import { Plus, Trash2, Globe, Layers, Smartphone, Code2, Clock, Loader2, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
-import type { SessionView } from '../backend';
+import React, { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { useQueryClient } from "@tanstack/react-query";
+import { useGetSessions, useDeleteSession } from "../hooks/useQueries";
+import Logo from "../components/Logo";
+import LoginButton from "../components/LoginButton";
+import {
+  Plus,
+  Trash2,
+  Globe,
+  LayoutDashboard,
+  Smartphone,
+  Server,
+  Code2,
+  Gamepad2,
+  Clock,
+  Loader2,
+  AlertCircle,
+  MessageSquare,
+} from "lucide-react";
+import { SessionView } from "../backend";
 
-const PROJECT_TYPE_CONFIG: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
-  landing: { icon: <Globe className="w-5 h-5" />, label: 'Landing Page', color: 'text-cyan' },
-  fullstack: { icon: <Layers className="w-5 h-5" />, label: 'Fullstack App', color: 'text-brand' },
-  mobile: { icon: <Smartphone className="w-5 h-5" />, label: 'Mobile App', color: 'text-cyan' },
-  api: { icon: <Code2 className="w-5 h-5" />, label: 'API', color: 'text-brand' },
+const projectTypeConfig: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
+  landing: { icon: <Globe className="w-4 h-4" />, label: "Landing Page", color: "text-blue-400" },
+  fullstack: { icon: <Code2 className="w-4 h-4" />, label: "Full Stack", color: "text-purple-400" },
+  mobile: { icon: <Smartphone className="w-4 h-4" />, label: "Mobile UI", color: "text-green-400" },
+  api: { icon: <Server className="w-4 h-4" />, label: "API Docs", color: "text-yellow-400" },
+  dashboard: { icon: <LayoutDashboard className="w-4 h-4" />, label: "Dashboard", color: "text-brand" },
+  game: { icon: <Gamepad2 className="w-4 h-4" />, label: "Game", color: "text-pink-400" },
 };
 
-function getProjectConfig(type: string) {
-  return PROJECT_TYPE_CONFIG[type] || PROJECT_TYPE_CONFIG['landing'];
-}
-
-function formatTimestamp(ts: bigint): string {
-  try {
-    const ms = Number(ts) / 1_000_000;
-    return formatDistanceToNow(new Date(ms), { addSuffix: true });
-  } catch {
-    return 'recently';
+function formatDate(timestamp: bigint): string {
+  const ms = Number(timestamp) / 1_000_000;
+  const date = new Date(ms);
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const days = Math.floor(diff / 86400000);
+  if (days === 0) {
+    const hours = Math.floor(diff / 3600000);
+    if (hours === 0) {
+      const mins = Math.floor(diff / 60000);
+      return mins <= 1 ? "Just now" : `${mins}m ago`;
+    }
+    return `${hours}h ago`;
   }
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString();
 }
 
-interface SessionCardProps {
+function SessionCard({
+  session,
+  onOpen,
+  onDelete,
+  isDeleting,
+}: {
   session: SessionView;
-  onDelete: (id: string) => void;
+  onOpen: () => void;
+  onDelete: () => void;
   isDeleting: boolean;
-}
-
-function SessionCard({ session, onDelete, isDeleting }: SessionCardProps) {
-  const navigate = useNavigate();
-  const config = getProjectConfig(session.projectType);
+}) {
+  const typeConfig = projectTypeConfig[session.projectType] || projectTypeConfig.fullstack;
+  const messageCount = session.messages.length;
 
   return (
     <div
-      className="glass-card p-5 group cursor-pointer hover:border-brand/40 hover:shadow-brand-glow transition-all duration-300 hover:-translate-y-0.5"
-      onClick={() => navigate({ to: '/sessions/$sessionId', params: { sessionId: session.id } })}
+      className="glass-card rounded-2xl border border-white/10 hover:border-brand/20 transition-all duration-300 group cursor-pointer overflow-hidden"
+      onClick={onOpen}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          {/* Icon */}
-          <div className={`
-            flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center
-            glass border border-border/60 ${config.color}
-            group-hover:border-brand/40 transition-all duration-300
-          `}>
-            {config.icon}
-          </div>
+      {/* Top accent bar */}
+      <div className="h-1 bg-gradient-to-r from-brand to-brand/40" />
 
-          {/* Info */}
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-text-primary truncate group-hover:text-brand transition-colors duration-200">
-              {session.name}
-            </h3>
-            <div className="flex items-center gap-3 mt-1">
-              <span className="text-xs text-text-muted">{config.label}</span>
-              <span className="text-text-muted/40">·</span>
-              <span className="text-xs text-text-muted flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                {formatTimestamp(session.updatedAt)}
-              </span>
+      <div className="p-5">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className={`${typeConfig.color} bg-white/5 rounded-lg p-1.5`}>
+              {typeConfig.icon}
             </div>
-            <div className="text-xs text-text-muted mt-1">
-              {session.messages.length} message{session.messages.length !== 1 ? 's' : ''}
-            </div>
+            <span className="text-xs text-muted-foreground">{typeConfig.label}</span>
           </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            disabled={isDeleting}
+            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-all duration-200 disabled:opacity-50"
+          >
+            {isDeleting ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Trash2 className="w-3.5 h-3.5" />
+            )}
+          </button>
         </div>
 
-        {/* Delete Button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(session.id);
-          }}
-          disabled={isDeleting}
-          className="flex-shrink-0 p-2 rounded-lg text-text-muted hover:text-red-400 hover:bg-red-400/10 transition-all duration-200 opacity-0 group-hover:opacity-100 disabled:opacity-50"
-        >
-          {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-        </button>
+        {/* Name */}
+        <h3 className="font-semibold text-foreground text-base mb-3 line-clamp-1 group-hover:text-brand transition-colors">
+          {session.name}
+        </h3>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <MessageSquare className="w-3 h-3" />
+            <span>{messageCount} message{messageCount !== 1 ? "s" : ""}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            <span>{formatDate(session.createdAt)}</span>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -91,102 +120,159 @@ function SessionCard({ session, onDelete, isDeleting }: SessionCardProps) {
 export default function SessionsPage() {
   const navigate = useNavigate();
   const { identity } = useInternetIdentity();
-  const { data: sessions, isLoading, error } = useGetSessions();
-  const { mutateAsync: deleteSession, isPending: isDeleting, variables: deletingId } = useDeleteSession();
+  const queryClient = useQueryClient();
+  const isAuthenticated = !!identity;
 
-  if (!identity) {
+  const { data: sessions, isLoading, error } = useGetSessions();
+  const deleteSession = useDeleteSession();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = async (sessionId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setDeletingId(sessionId);
+    try {
+      await deleteSession.mutateAsync(sessionId);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="glass-card p-8 text-center max-w-md border border-border/40">
-          <AlertCircle className="w-12 h-12 text-brand mx-auto mb-4" />
-          <h2 className="text-xl font-bold mb-2">Authentication Required</h2>
-          <p className="text-text-muted">Please log in to view your sessions.</p>
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <div className="text-center max-w-sm">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center">
+            <AlertCircle className="w-8 h-8 text-brand" />
+          </div>
+          <h2 className="text-xl font-semibold text-foreground mb-2">Login Required</h2>
+          <p className="text-muted-foreground text-sm mb-6">
+            Please log in to view your sessions.
+          </p>
+          <LoginButton />
         </div>
       </div>
     );
   }
 
-  const handleDelete = async (sessionId: string) => {
-    try {
-      await deleteSession(sessionId);
-      toast.success('Session deleted');
-    } catch {
-      toast.error('Failed to delete session');
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold gradient-text-brand">My Sessions</h1>
-            <p className="text-text-muted mt-1">
-              {sessions ? `${sessions.length} project${sessions.length !== 1 ? 's' : ''}` : 'Loading...'}
-            </p>
-          </div>
-          <button
-            onClick={() => navigate({ to: '/sessions/new' })}
-            className="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold"
-          >
-            <Plus className="w-4 h-4" />
-            New Session
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <header className="sticky top-0 z-40 border-b border-white/5 bg-background/80 backdrop-blur-xl">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+          <button onClick={() => navigate({ to: "/" })} className="hover:opacity-80 transition-opacity">
+            <Logo size="small" />
           </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate({ to: "/sessions/new" })}
+              className="btn-primary flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              New Session
+            </button>
+            <LoginButton />
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-10">
+        {/* Page title */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-display font-bold text-foreground mb-1">My Sessions</h1>
+          <p className="text-muted-foreground text-sm">
+            {sessions?.length
+              ? `${sessions.length} project${sessions.length !== 1 ? "s" : ""}`
+              : "Your AI-generated projects will appear here"}
+          </p>
         </div>
 
-        {/* Content */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="flex flex-col items-center gap-4">
-              <Loader2 className="w-8 h-8 text-brand animate-spin" />
-              <p className="text-text-muted">Loading sessions...</p>
-            </div>
-          </div>
-        ) : error ? (
-          <div className="glass-card p-8 text-center border border-red-500/20">
-            <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3" />
-            <p className="text-text-secondary">Failed to load sessions. Please try again.</p>
-          </div>
-        ) : sessions && sessions.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {sessions.map((session) => (
-              <SessionCard
-                key={session.id}
-                session={session}
-                onDelete={handleDelete}
-                isDeleting={isDeleting && deletingId === session.id}
-              />
+        {/* Loading */}
+        {isLoading && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="glass-card rounded-2xl border border-white/10 overflow-hidden animate-pulse">
+                <div className="h-1 bg-white/10" />
+                <div className="p-5 space-y-3">
+                  <div className="h-4 bg-white/10 rounded-lg w-1/3" />
+                  <div className="h-5 bg-white/10 rounded-lg w-3/4" />
+                  <div className="h-3 bg-white/10 rounded-lg w-1/2" />
+                </div>
+              </div>
             ))}
           </div>
-        ) : (
-          <div className="glass-card p-16 text-center border border-border/40">
-            <div className="w-16 h-16 rounded-2xl glass border border-brand/30 flex items-center justify-center mx-auto mb-6 shadow-brand-glow">
-              <Plus className="w-8 h-8 text-brand" />
-            </div>
-            <h3 className="text-xl font-semibold mb-2">No sessions yet</h3>
-            <p className="text-text-muted mb-6">Create your first project to get started with Noventra.ai</p>
+        )}
+
+        {/* Error */}
+        {error && !isLoading && (
+          <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-6 text-center">
+            <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-3" />
+            <p className="text-red-300 text-sm mb-4">Failed to load sessions. Please try again.</p>
             <button
-              onClick={() => navigate({ to: '/sessions/new' })}
-              className="btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold"
+              onClick={() => queryClient.invalidateQueries({ queryKey: ["sessions"] })}
+              className="text-sm text-brand hover:text-brand/80 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!isLoading && !error && sessions?.length === 0 && (
+          <div className="text-center py-20">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center">
+              <MessageSquare className="w-10 h-10 text-brand/60" />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground mb-2">No sessions yet</h3>
+            <p className="text-muted-foreground text-sm mb-8 max-w-xs mx-auto">
+              Create your first session to start building with AI.
+            </p>
+            <button
+              onClick={() => navigate({ to: "/sessions/new" })}
+              className="btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-sm"
             >
               <Plus className="w-4 h-4" />
               Create First Session
             </button>
           </div>
         )}
-      </div>
+
+        {/* Sessions grid */}
+        {!isLoading && !error && sessions && sessions.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {sessions.map((session) => (
+              <SessionCard
+                key={session.id}
+                session={session}
+                onOpen={() => navigate({ to: "/sessions/$sessionId", params: { sessionId: session.id } })}
+                onDelete={() => handleDelete(session.id)}
+                isDeleting={deletingId === session.id}
+              />
+            ))}
+            {/* Add new card */}
+            <button
+              onClick={() => navigate({ to: "/sessions/new" })}
+              className="glass-card rounded-2xl border border-dashed border-white/20 hover:border-brand/40 transition-all duration-300 p-5 flex flex-col items-center justify-center gap-3 text-muted-foreground hover:text-brand group min-h-[140px]"
+            >
+              <div className="w-10 h-10 rounded-xl border border-dashed border-current flex items-center justify-center group-hover:bg-brand/10 transition-colors">
+                <Plus className="w-5 h-5" />
+              </div>
+              <span className="text-sm font-medium">New Session</span>
+            </button>
+          </div>
+        )}
+      </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/40 py-6 px-4 mt-8">
-        <div className="max-w-4xl mx-auto text-center text-text-muted text-sm">
-          <p>
-            Built with <span className="text-brand">♥</span> using{' '}
+      <footer className="border-t border-white/5 py-6">
+        <div className="max-w-6xl mx-auto px-6 text-center">
+          <p className="text-xs text-muted-foreground">
+            © {new Date().getFullYear()} Noventra.ai · Built with{" "}
+            <span className="text-brand">♥</span> using{" "}
             <a
-              href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(typeof window !== 'undefined' ? window.location.hostname : 'noventra-ai')}`}
+              href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-cyan hover:text-cyan-light transition-colors"
+              className="text-brand hover:text-brand/80 transition-colors"
             >
               caffeine.ai
             </a>

@@ -1,73 +1,79 @@
 {
   "kind": "build_request",
-  "title": "Reduce app startup loading time and improve initialization performance",
+  "title": "Fix alarm sound playback — configure audio support in Noventra",
+  "projectName": "Noventra.ai",
   "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Reduce the app startup/loading time from ~2 minutes to under 10 seconds. Optimize the ActorGuard initialization flow by reducing retry delays, lowering the hard timeout threshold, and ensuring the app proceeds to render as soon as the backend responds or a minimal viable connection is established. Avoid unnecessary sequential awaits during startup.",
+      "text": "Implement a robust alarm sound system that uses the Web Audio API (AudioContext) as the primary sound engine to generate alarm tones programmatically, removing any dependency on external audio files or URLs that may fail to load. When an alarm triggers, synthesize a repeating beep/tone pattern using OscillatorNode so that sound playback works reliably without network requests or file permission issues.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-latest"
         ],
         "quotes": [
-          "loding time is more it takes 2 minuts to start"
+          "cannot get sound from the alarm continuesly giving error",
+          "Noventra is not configured well for sounds and videos"
         ]
       },
       "acceptanceCriteria": [
-        "App loads and becomes interactive in under 10 seconds on a normal connection",
-        "ActorGuard does not block the UI for more than 10 seconds under any condition",
-        "Exponential backoff retry delays are capped at a low value (e.g., max 2 seconds per retry) to avoid long waits",
-        "The hard timeout in ActorGuard is reduced to no more than 10 seconds",
-        "Loading screen displays a meaningful progress indicator or status message so users know the app is starting"
+        "When an alarm fires, an audible repeating tone plays immediately without throwing console errors.",
+        "Sound is generated via Web Audio API (AudioContext + OscillatorNode) — no external audio file URLs are required.",
+        "The alarm tone repeats on a timed interval until the user dismisses it.",
+        "A user-visible 'Stop Alarm' / dismiss button halts the audio and clears the interval.",
+        "No unhandled promise rejections or MediaError exceptions appear in the browser console during alarm playback."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Optimize backend initialization in main.mo to ensure the initialize() function returns quickly. Avoid blocking or expensive operations during initialization that could cause the frontend to wait.",
-      "target": "backend",
+      "text": "Add a user-gesture-safe audio initialisation guard. The Web Audio API requires a user gesture before AudioContext can run. On the first user interaction after page load (click, keydown, or pointer event), resume or create the AudioContext so it is in the 'running' state before any alarm fires. Display an unobtrusive banner or toast prompting the user to interact with the page if the AudioContext is suspended when an alarm is about to trigger.",
+      "target": "frontend",
       "source": {
         "messageIds": [
           "msg-latest"
         ],
         "quotes": [
-          "loding time is more it takes 2 minuts to start"
+          "continuesly giving error",
+          "not configured well for sounds"
         ]
       },
       "acceptanceCriteria": [
-        "The initialize() canister call completes within 2 seconds",
-        "No heavy computation or blocking loops run during initialization"
+        "AudioContext is created and resumed on the first user interaction on the page.",
+        "If AudioContext is still suspended when an alarm fires, a toast message prompts 'Click anywhere to enable alarm sound' and the alarm visual indicator still activates.",
+        "After the user interacts, subsequent alarms play sound without any additional prompts.",
+        "No 'AudioContext was not allowed to start' browser warning appears after a user has interacted with the page."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Improve the error handling for API 401 'User not found' errors in the chat page. Instead of showing a raw red error banner, display a user-friendly message with a 'Retry' button that re-attempts the request, and a suggestion to log out and log back in if the error persists.",
+      "text": "Audit and fix any video/media elements in the frontend that may be misconfigured. Ensure all HTML5 video or audio elements include the correct MIME types and use local or blob sources where possible. Remove or replace any broken external media URLs. If the LivePreview sandbox iframe is involved in media playback errors, update its sandbox attribute to include 'allow-scripts allow-same-origin' and ensure media autoplay policies are respected.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-api-error"
+          "msg-latest"
         ],
         "quotes": [
-          "API error 401: User not found."
+          "Noventra is not configured well for sounds and videos"
         ]
       },
       "acceptanceCriteria": [
-        "401 API errors show a friendly message such as 'Session expired. Please try again or log out and log back in.'",
-        "A 'Retry' button is displayed that re-sends the failed request",
-        "A 'Logout' shortcut link is also shown in the error state",
-        "Raw error text like 'API error 401: User not found' is no longer shown directly to the user"
+        "No MediaError or net::ERR_BLOCKED_BY_RESPONSE errors appear in the console related to audio or video elements.",
+        "The LivePreview iframe sandbox attribute permits the media functionality it needs without exposing security risks.",
+        "Any previously broken audio/video elements either display a graceful fallback or play correctly."
       ]
     }
   ],
   "constraints": [
-    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui",
-    "Do not change the backend's public API surface or data schema"
+    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
+    "All audio must be generated client-side via Web Audio API — do not add external CDN audio file dependencies.",
+    "Backend (main.mo) should not be changed unless alarm data persistence is explicitly requested."
   ],
   "nonGoals": [
-    "Fixing the underlying Caffeine platform API key or authentication token — that is a platform-level issue",
-    "Adding new AI or LLM features",
-    "Changing the visual design or branding"
+    "Adding new alarm creation UI — the existing alarm creation flow already works.",
+    "Implementing video streaming or media upload features.",
+    "Changing the overall visual theme or color system.",
+    "Backend changes for alarm storage."
   ],
   "imageRequirements": {
     "required": [],

@@ -1,45 +1,96 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Reduce app startup loading time and improve initialization performance",
+  "title": "Fix alarm sound playback — configure audio support in Noventra",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Reduce app startup/loading time from ~2 minutes to under 10 seconds by optimizing ActorGuard initialization flow with reduced retry delays, lower hard timeout threshold, and avoiding unnecessary sequential awaits during startup",
+      "summary": "Implement a robust alarm sound system using Web Audio API to generate tones programmatically, eliminating dependency on external audio files",
       "acceptanceCriteria": [
-        "App loads and becomes interactive in under 10 seconds on a normal connection",
-        "ActorGuard does not block the UI for more than 10 seconds under any condition",
-        "Exponential backoff retry delays are capped at a low value (e.g., max 2 seconds per retry) to avoid long waits",
-        "The hard timeout in ActorGuard is reduced to no more than 10 seconds",
-        "Loading screen displays a meaningful progress indicator or status message so users know the app is starting"
+        "When an alarm fires, an audible repeating tone plays immediately without throwing console errors.",
+        "Sound is generated via Web Audio API (AudioContext + OscillatorNode) — no external audio file URLs are required.",
+        "The alarm tone repeats on a timed interval until the user dismisses it.",
+        "A user-visible 'Stop Alarm' / dismiss button halts the audio and clears the interval.",
+        "No unhandled promise rejections or MediaError exceptions appear in the browser console during alarm playback."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/ActorGuard.tsx",
+          "path": "frontend/src/hooks/useAlarmSound.ts",
+          "operation": "create",
+          "description": "Create a custom React hook that manages Web Audio API alarm sound generation. The hook initializes an AudioContext, provides a playAlarm() function that synthesizes a repeating beep pattern using OscillatorNode (e.g., 800Hz tone, 200ms on, 200ms off), tracks the playing state, and exposes a stopAlarm() function to halt playback and clear intervals. Ensure cleanup on unmount."
+        },
+        {
+          "path": "frontend/src/components/AlarmNotification.tsx",
+          "operation": "create",
+          "description": "Create an alarm notification component that displays when an alarm triggers. Show a prominent alert with the alarm message, a pulsing visual indicator, and a 'Stop Alarm' button. Use the useAlarmSound hook to trigger audio playback when mounted and stop it when dismissed. Include error boundary handling for any audio API failures."
+        },
+        {
+          "path": "frontend/src/pages/ChatPage.tsx",
           "operation": "modify",
-          "description": "Optimize the initialization flow by reducing the hard timeout from 20 seconds to 10 seconds, capping exponential backoff retry delays at 2 seconds maximum per retry instead of allowing unbounded growth, reducing the initial retry delay from 1000ms to 500ms, and adding a progress indicator that shows current attempt number and status message (e.g., 'Connecting to backend... Attempt 1 of 5') so users see meaningful feedback during startup. Ensure the component proceeds to render children as soon as the backend responds successfully or the 10-second timeout is reached."
+          "description": "Integrate the AlarmNotification component into the ChatPage. When an alarm condition is detected (e.g., session timeout, important event), render the AlarmNotification component. Ensure the alarm visual indicator appears even if audio fails, maintaining user awareness of the alarm state."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Add user-gesture-safe audio initialization guard with AudioContext state management and user interaction prompts",
+      "acceptanceCriteria": [
+        "AudioContext is created and resumed on the first user interaction on the page.",
+        "If AudioContext is still suspended when an alarm fires, a toast message prompts 'Click anywhere to enable alarm sound' and the alarm visual indicator still activates.",
+        "After the user interacts, subsequent alarms play sound without any additional prompts.",
+        "No 'AudioContext was not allowed to start' browser warning appears after a user has interacted with the page."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useAlarmSound.ts",
+          "operation": "modify",
+          "description": "Enhance the useAlarmSound hook to check AudioContext state before playing sound. If the context is suspended when playAlarm() is called, return a status indicating user interaction is required. Add a resumeAudioContext() function that resumes the context and can be called after user gesture. Store the AudioContext state and expose it to consumers."
+        },
+        {
+          "path": "frontend/src/hooks/useAudioContextInit.ts",
+          "operation": "create",
+          "description": "Create a global audio initialization hook that sets up event listeners for the first user interaction (click, keydown, pointerdown) on the document. On first interaction, create or resume the shared AudioContext and remove the listeners. Expose the AudioContext instance and a boolean indicating whether initialization is complete."
+        },
+        {
+          "path": "frontend/src/components/AudioEnablePrompt.tsx",
+          "operation": "create",
+          "description": "Create a toast-style prompt component that appears when an alarm tries to play but AudioContext is suspended. Display the message 'Click anywhere to enable alarm sound' with a dismiss action. Auto-dismiss the toast after the user clicks anywhere on the page and the AudioContext resumes."
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Integrate the useAudioContextInit hook at the App level to ensure global audio initialization on first user interaction. This ensures the AudioContext is ready before any alarm fires anywhere in the application."
+        },
+        {
+          "path": "frontend/src/components/AlarmNotification.tsx",
+          "operation": "modify",
+          "description": "Update AlarmNotification to conditionally render the AudioEnablePrompt component when the alarm sound cannot play due to suspended AudioContext. Ensure the visual alarm indicator still displays prominently even when audio is disabled."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Improve error handling for API 401 'User not found' errors in the chat page by displaying a user-friendly message with a 'Retry' button and a suggestion to log out and log back in if the error persists",
+      "summary": "Audit and fix video/media element configurations, ensuring correct MIME types, local sources, and proper LivePreview sandbox attributes",
       "acceptanceCriteria": [
-        "401 API errors show a friendly message such as 'Session expired. Please try again or log out and log back in.'",
-        "A 'Retry' button is displayed that re-sends the failed request",
-        "A 'Logout' shortcut link is also shown in the error state",
-        "Raw error text like 'API error 401: User not found' is no longer shown directly to the user"
+        "No MediaError or net::ERR_BLOCKED_BY_RESPONSE errors appear in the console related to audio or video elements.",
+        "The LivePreview iframe sandbox attribute permits the media functionality it needs without exposing security risks.",
+        "Any previously broken audio/video elements either display a graceful fallback or play correctly."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/ChatPage.tsx",
+          "path": "frontend/src/components/LivePreview.tsx",
           "operation": "modify",
-          "description": "Replace the current error banner that displays raw API error messages with a user-friendly error handling component. When a 401 'User not found' error occurs, display a friendly message like 'Your session has expired. Please try again or log out and log back in.' Include a 'Retry' button that re-attempts the failed operation (message send or session load) and a 'Logout' link that triggers the Internet Identity clear flow. Wrap the error display in a styled container with appropriate spacing and visual hierarchy, removing any direct display of raw error text to the user."
+          "description": "Update the LivePreview component's iframe sandbox attribute to include 'allow-scripts allow-same-origin' to support media playback while maintaining security. Ensure the sandbox configuration respects browser autoplay policies by also including 'allow-popups' if needed for media interactions."
         },
         {
-          "path": "frontend/src/hooks/useQueries.ts",
+          "path": "frontend/src/pages/ChatPage.tsx",
           "operation": "modify",
-          "description": "Update error handling in the React Query hooks (especially useAddMessage and useGetSession) to parse and categorize 401 errors distinctly from other error types. Add a custom error type or error code that can be consumed by UI components to determine whether to show the session-expired flow. Ensure that 401 errors are not treated as generic failures but are surfaced with enough context for the ChatPage to display the appropriate retry/logout UI."
+          "description": "Audit any inline HTML rendering or dynamic content injection that might include audio/video elements. Ensure all media elements specify correct MIME types in their source tags. Replace any external CDN media URLs with local blob sources or remove them. Add error handlers to gracefully display fallback content when media fails to load."
+        },
+        {
+          "path": "frontend/src/utils/mediaValidator.ts",
+          "operation": "create",
+          "description": "Create a utility module that validates and sanitizes HTML content containing media elements. Provide functions to check MIME types, convert external URLs to safe blob sources where appropriate, and inject proper error handlers. Export a sanitizeMediaHTML function that can be called before rendering user-generated or AI-generated HTML content."
         }
       ]
     }

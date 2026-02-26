@@ -1,429 +1,554 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "@tanstack/react-router";
-import { Send, Loader2, ArrowLeft, Code2, Eye, Sparkles, RefreshCw, LogOut, AlertCircle } from "lucide-react";
-import { toast } from "sonner";
-import { useGetSession, useAddMessage, useUpdateFiles, SessionExpiredError } from "../hooks/useQueries";
-import { generateAIResponse, extractHtmlFromResponse, ProjectType } from "../services/llmService";
-import MessageBubble from "../components/MessageBubble";
-import LivePreview from "../components/LivePreview";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { useGetSession, useAddMessage } from "../hooks/useQueries";
+import { generateAIResponse, hasApiKey, LLMError } from "../services/llmService";
 import Logo from "../components/Logo";
 import LoginButton from "../components/LoginButton";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
-import { useQueryClient } from "@tanstack/react-query";
-import type { Message } from "../backend";
+import MessageBubble from "../components/MessageBubble";
+import LivePreview from "../components/LivePreview";
+import ShareButton from "../components/ShareButton";
+import ApiKeySetup from "../components/ApiKeySetup";
+import AlarmNotification from "../components/AlarmNotification";
+import AudioEnablePrompt from "../components/AudioEnablePrompt";
+import {
+  ArrowLeft,
+  Send,
+  Loader2,
+  AlertTriangle,
+  RefreshCw,
+  Key,
+  Code2,
+  Eye,
+  X,
+  Bell,
+} from "lucide-react";
+import { Message } from "../backend";
 
-// Friendly error banner for session/API errors
-function SessionErrorBanner({
-  error,
+// ─── Alarm state type ─────────────────────────────────────────────────────────
+interface ActiveAlarm {
+  id: string;
+  message: string;
+}
+
+// ─── Error Banner ─────────────────────────────────────────────────────────────
+function ErrorBanner({
+  message,
+  isApiKeyError,
   onRetry,
-  onLogout,
+  onOpenSettings,
+  onDismiss,
 }: {
-  error: Error;
+  message: string;
+  isApiKeyError: boolean;
   onRetry: () => void;
-  onLogout: () => void;
+  onOpenSettings: () => void;
+  onDismiss: () => void;
 }) {
-  const isSessionExpired = error instanceof SessionExpiredError;
-
   return (
-    <div className="mx-4 mt-3 p-3 rounded-xl border border-destructive/30 bg-destructive/10 flex items-start gap-3">
-      <AlertCircle size={16} className="text-destructive shrink-0 mt-0.5" />
+    <div className="mx-4 mb-3 rounded-xl border border-red-500/20 bg-red-500/8 p-3 flex items-start gap-3">
+      <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-destructive font-medium">
-          {isSessionExpired
-            ? "Session expired"
-            : "Something went wrong"}
-        </p>
-        <p className="text-xs text-destructive/80 mt-0.5">
-          {isSessionExpired
-            ? "Your session has expired. Please try again or log out and log back in."
-            : error.message}
-        </p>
-        <div className="flex items-center gap-2 mt-2">
-          <button
-            onClick={onRetry}
-            className="flex items-center gap-1 text-xs text-destructive hover:text-destructive/80 font-medium transition-colors"
-          >
-            <RefreshCw size={11} />
-            Retry
-          </button>
-          {isSessionExpired && (
-            <>
-              <span className="text-destructive/30">·</span>
-              <button
-                onClick={onLogout}
-                className="flex items-center gap-1 text-xs text-destructive hover:text-destructive/80 font-medium transition-colors"
-              >
-                <LogOut size={11} />
-                Log out &amp; back in
-              </button>
-            </>
+        <p className="text-sm text-red-300 leading-relaxed">{message}</p>
+        <div className="flex items-center gap-3 mt-2">
+          {isApiKeyError ? (
+            <button
+              onClick={onOpenSettings}
+              className="flex items-center gap-1.5 text-xs text-brand hover:text-brand/80 font-medium transition-colors"
+            >
+              <Key className="w-3.5 h-3.5" />
+              Configure API Key
+            </button>
+          ) : (
+            <button
+              onClick={onRetry}
+              className="flex items-center gap-1.5 text-xs text-brand hover:text-brand/80 font-medium transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Retry
+            </button>
           )}
         </div>
+      </div>
+      <button
+        onClick={onDismiss}
+        className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}
+
+// ─── API Key Modal ─────────────────────────────────────────────────────────────
+function ApiKeyModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div className="glass-card rounded-2xl border border-brand/20 shadow-2xl shadow-brand/10 w-full max-w-md">
+        <ApiKeySetup isModal onClose={onClose} onSaved={onClose} />
       </div>
     </div>
   );
 }
 
+// ─── Alarm detector: scans AI-generated HTML for alarm triggers ───────────────
+function detectAlarmInHtml(html: string): string | null {
+  if (!html) return null;
+  // Look for common alarm-related patterns in the generated HTML
+  // The AI might generate a page that includes alarm functionality
+  // We detect if the HTML contains alarm trigger markers
+  const alarmPatterns = [
+    /data-alarm-trigger="([^"]+)"/i,
+    /id="alarm-trigger"[^>]*data-message="([^"]+)"/i,
+  ];
+  for (const pattern of alarmPatterns) {
+    const match = html.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+// ─── Main ChatPage ─────────────────────────────────────────────────────────────
 export default function ChatPage() {
-  const params = useParams({ from: "/sessions/$sessionId" });
-  const sessionId = params?.sessionId;
+  const { sessionId } = useParams({ from: "/sessions/$sessionId" });
   const navigate = useNavigate();
-  const { clear } = useInternetIdentity();
-  const queryClient = useQueryClient();
+  const { identity } = useInternetIdentity();
+
+  const { data: session, isLoading: sessionLoading, error: sessionError } = useGetSession(sessionId);
+  const addMessage = useAddMessage();
 
   const [input, setInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [lastHtml, setLastHtml] = useState("");
   const [activeTab, setActiveTab] = useState<"preview" | "code">("preview");
-  const [currentHtml, setCurrentHtml] = useState("");
-  const [sendError, setSendError] = useState<Error | null>(null);
-  const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<LLMError | null>(null);
+  const [lastUserMessage, setLastUserMessage] = useState("");
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [showApiKeyBanner, setShowApiKeyBanner] = useState(!hasApiKey());
+
+  // Alarm state
+  const [activeAlarm, setActiveAlarm] = useState<ActiveAlarm | null>(null);
+  const [showAudioPrompt, setShowAudioPrompt] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const { data: session, isLoading: sessionLoading, error: sessionError } = useGetSession(
-    sessionId ?? ""
-  );
-  const addMessage = useAddMessage();
-  const updateFiles = useUpdateFiles();
+  // Suppress unused variable warning — identity used for auth context
+  void identity;
 
-  // Load existing HTML from session files on mount
-  useEffect(() => {
-    if (session?.files && session.files.length > 0) {
-      const htmlFile = session.files.find(
-        (f) => f.filename === "index.html" || f.filename.endsWith(".html")
-      );
-      if (htmlFile && htmlFile.content && htmlFile.content.trim().length > 0) {
-        setCurrentHtml(htmlFile.content);
-      }
-    }
-  }, [session?.files]);
-
-  // Scroll to bottom when messages change
+  // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [session?.messages, isGenerating]);
+
+  // Extract latest HTML from session messages
+  useEffect(() => {
+    if (!session?.messages) return;
+    const assistantMessages = session.messages.filter((m) => m.role === "assistant");
+    if (assistantMessages.length > 0) {
+      const latest = assistantMessages[assistantMessages.length - 1];
+      setLastHtml(latest.content);
+    }
   }, [session?.messages]);
-
-  const doSend = useCallback(async (userMessage: string) => {
-    if (!sessionId) return;
-    setIsGenerating(true);
-    setSendError(null);
-
-    try {
-      // Save user message to backend
-      await addMessage.mutateAsync({
-        sessionId,
-        role: "user",
-        content: userMessage,
-      });
-
-      // Build conversation history for LLM
-      const history = (session?.messages ?? []).map((m) => ({
-        role: m.role as "user" | "assistant" | "system",
-        content: m.content,
-      }));
-
-      // Call LLM
-      const aiResponse = await generateAIResponse(
-        userMessage,
-        (session?.projectType ?? "landing") as ProjectType,
-        history,
-        currentHtml
-      );
-
-      // Extract HTML from the response
-      const extractedHtml = extractHtmlFromResponse(aiResponse);
-
-      if (extractedHtml && extractedHtml.trim().length > 0) {
-        setCurrentHtml(extractedHtml);
-
-        // Save HTML file to backend
-        await updateFiles.mutateAsync({
-          sessionId,
-          filename: "index.html",
-          content: extractedHtml,
-        });
-      }
-
-      // Save AI response message to backend
-      await addMessage.mutateAsync({
-        sessionId,
-        role: "assistant",
-        content: aiResponse,
-      });
-
-      // Switch to preview tab when we have HTML
-      if (extractedHtml && extractedHtml.trim().length > 0) {
-        setActiveTab("preview");
-      }
-
-      setLastFailedMessage(null);
-    } catch (error: unknown) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      setSendError(err);
-      setLastFailedMessage(userMessage);
-      // Only show toast for non-session errors (session errors shown inline)
-      if (!(error instanceof SessionExpiredError)) {
-        toast.error(err.message);
-      }
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [sessionId, session, currentHtml, addMessage, updateFiles]);
-
-  const handleSend = useCallback(async () => {
-    if (!input.trim() || isGenerating || !sessionId) return;
-    const userMessage = input.trim();
-    setInput("");
-    await doSend(userMessage);
-  }, [input, isGenerating, sessionId, doSend]);
-
-  const handleRetry = useCallback(async () => {
-    if (!lastFailedMessage || isGenerating) return;
-    await doSend(lastFailedMessage);
-  }, [lastFailedMessage, isGenerating, doSend]);
-
-  const handleLogout = useCallback(async () => {
-    await clear();
-    queryClient.clear();
-    navigate({ to: "/" });
-  }, [clear, queryClient, navigate]);
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
 
   // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
+      textareaRef.current.style.height =
+        Math.min(textareaRef.current.scrollHeight, 160) + "px";
     }
   }, [input]);
 
-  if (!sessionId) {
+  // Listen for alarm messages from the iframe via postMessage
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (!event.data || typeof event.data !== "object") return;
+      if (event.data.type === "ALARM_TRIGGER") {
+        const alarmMessage = event.data.message || "Alarm triggered!";
+        setActiveAlarm({ id: Date.now().toString(), message: alarmMessage });
+      }
+    };
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
+
+  const sendMessage = useCallback(
+    async (messageText: string) => {
+      if (!messageText.trim() || isGenerating || !session) return;
+
+      const text = messageText.trim();
+      setLastUserMessage(text);
+      setApiError(null);
+      setInput("");
+
+      // Save user message to backend
+      try {
+        await addMessage.mutateAsync({ sessionId, role: "user", content: text });
+      } catch (err) {
+        console.error("Failed to save user message:", err);
+      }
+
+      setIsGenerating(true);
+
+      try {
+        // Build conversation history
+        const history = (session.messages || []).map((m: Message) => ({
+          role: m.role,
+          content: m.content,
+        }));
+        history.push({ role: "user", content: text });
+
+        const html = await generateAIResponse(history, session.projectType, session.name);
+        setLastHtml(html);
+
+        // Save assistant response
+        await addMessage.mutateAsync({ sessionId, role: "assistant", content: html });
+        setActiveTab("preview");
+      } catch (err: unknown) {
+        const llmErr = err as LLMError;
+        setApiError({
+          message: llmErr?.message || "Could not reach the AI service. Please retry.",
+          isApiKeyError: llmErr?.isApiKeyError || false,
+          status: llmErr?.status,
+        });
+      } finally {
+        setIsGenerating(false);
+      }
+    },
+    [isGenerating, session, sessionId, addMessage]
+  );
+
+  const handleRetry = useCallback(() => {
+    if (lastUserMessage) {
+      sendMessage(lastUserMessage);
+    }
+  }, [lastUserMessage, sendMessage]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(input);
+    }
+  };
+
+  // Test alarm button handler (for development/demo)
+  const handleTestAlarm = () => {
+    setActiveAlarm({ id: Date.now().toString(), message: "Test alarm — your scheduled reminder is active!" });
+  };
+
+  // ── Loading state ──
+  if (sessionLoading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-background">
-        <div className="text-center space-y-4">
-          <p className="text-text-muted text-lg">No session ID provided.</p>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-brand animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground text-sm">Loading session...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Error state ──
+  if (sessionError) {
+    const errMsg = (sessionError as Error)?.message || "";
+    const isNotFound = errMsg.includes("not found") || errMsg.includes("Access denied");
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <div className="text-center max-w-sm">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+            <AlertTriangle className="w-8 h-8 text-red-400" />
+          </div>
+          <h2 className="text-xl font-semibold text-foreground mb-2">
+            {isNotFound ? "Session Not Found" : "Failed to Load Session"}
+          </h2>
+          <p className="text-muted-foreground text-sm mb-6">
+            {isNotFound
+              ? "This session doesn't exist or you don't have access to it."
+              : "Something went wrong loading this session. Please try again."}
+          </p>
           <button
             onClick={() => navigate({ to: "/sessions" })}
-            className="btn-primary px-6 py-2 rounded-lg"
+            className="btn-primary px-6 py-3 rounded-xl font-medium text-sm"
           >
-            Go to Sessions
+            Back to Sessions
           </button>
         </div>
       </div>
     );
   }
 
-  if (sessionLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="animate-spin text-brand" size={32} />
-          <p className="text-text-muted">Loading session…</p>
-        </div>
-      </div>
-    );
-  }
+  const messages = session?.messages || [];
+  const codeContent = lastHtml;
 
-  // Session-level error (e.g. 401 on load)
-  if (sessionError || !session) {
-    const isExpired = sessionError instanceof SessionExpiredError;
-    return (
-      <div className="flex items-center justify-center h-screen bg-background">
-        <div className="max-w-sm w-full mx-4 text-center space-y-4">
-          <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center mx-auto">
-            <AlertCircle size={24} className="text-destructive" />
+  return (
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
+      {/* Header */}
+      <header className="shrink-0 border-b border-white/5 bg-background/80 backdrop-blur-xl z-30">
+        <div className="h-14 px-4 flex items-center gap-3">
+          <button
+            onClick={() => navigate({ to: "/sessions" })}
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={() => navigate({ to: "/" })}
+            className="hover:opacity-80 transition-opacity"
+          >
+            <Logo size="small" />
+          </button>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-sm font-semibold text-foreground truncate">
+                {session?.name}
+              </h1>
+              {session?.projectType && (
+                <span className="text-xs text-muted-foreground bg-white/5 px-2 py-0.5 rounded-full border border-white/10 hidden sm:block">
+                  {session.projectType}
+                </span>
+              )}
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg font-semibold text-foreground font-display">
-              {isExpired ? "Session Expired" : "Session Not Found"}
-            </h2>
-            <p className="text-muted-foreground text-sm mt-1">
-              {isExpired
-                ? "Your session has expired. Please log out and log back in to continue."
-                : sessionError instanceof Error
-                ? sessionError.message
-                : "This session could not be loaded."}
-            </p>
-          </div>
-          <div className="flex flex-col gap-2">
-            {isExpired && (
-              <button
-                onClick={handleLogout}
-                className="btn-primary flex items-center gap-2 justify-center px-6 py-2 rounded-xl w-full"
-              >
-                <LogOut size={16} />
-                Log Out &amp; Back In
-              </button>
-            )}
+
+          <div className="flex items-center gap-2">
+            {/* Test alarm button */}
             <button
-              onClick={() => navigate({ to: "/sessions" })}
-              className="px-6 py-2 rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors text-sm w-full"
+              onClick={handleTestAlarm}
+              title="Test Alarm Sound"
+              className="p-2 rounded-lg text-muted-foreground hover:text-brand hover:bg-brand/10 transition-all"
             >
-              Back to Sessions
+              <Bell className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setShowApiKeyModal(true)}
+              title="API Key Settings"
+              className={`p-2 rounded-lg transition-all ${
+                hasApiKey()
+                  ? "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                  : "text-brand bg-brand/10 hover:bg-brand/20"
+              }`}
+            >
+              <Key className="w-4 h-4" />
+            </button>
+            {session && <ShareButton sessionId={session.id} />}
+            <LoginButton />
+          </div>
+        </div>
+      </header>
+
+      {/* API Key Banner */}
+      {showApiKeyBanner && (
+        <div className="shrink-0 bg-brand/10 border-b border-brand/20 px-4 py-2.5 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-brand">
+            <Key className="w-4 h-4 shrink-0" />
+            <span>
+              Add your{" "}
+              <a
+                href="https://openrouter.ai/keys"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2 hover:text-brand/80"
+              >
+                OpenRouter API key
+              </a>{" "}
+              to start generating apps.
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowApiKeyModal(true)}
+              className="text-xs font-medium text-brand bg-brand/20 hover:bg-brand/30 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              Add Key
+            </button>
+            <button
+              onClick={() => setShowApiKeyBanner(false)}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
-      </div>
-    );
-  }
+      )}
 
-  return (
-    <div className="flex flex-col h-screen bg-background overflow-hidden">
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-1 shrink-0">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate({ to: "/sessions" })}
-            className="p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-2 transition-colors"
-          >
-            <ArrowLeft size={18} />
-          </button>
-          <Logo size="small" />
-          <div className="hidden sm:block h-5 w-px bg-border" />
-          <div className="hidden sm:block">
-            <p className="text-sm font-semibold text-text-primary leading-tight">{session.name}</p>
-            <p className="text-xs text-text-muted capitalize">{session.projectType}</p>
-          </div>
-        </div>
-        <LoginButton />
-      </header>
-
-      {/* Main content: chat + preview */}
-      <div className="flex flex-1 overflow-hidden">
+      {/* Main content */}
+      <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Chat panel */}
-        <div className="flex flex-col w-full md:w-[420px] lg:w-[480px] shrink-0 border-r border-border">
+        <div className="w-full md:w-[380px] lg:w-[420px] shrink-0 flex flex-col border-r border-white/5 min-h-0">
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {session.messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center gap-4 py-12">
-                <div className="w-14 h-14 rounded-2xl bg-brand/10 flex items-center justify-center">
-                  <Sparkles size={24} className="text-brand" />
+          <div className="flex-1 overflow-y-auto p-4 space-y-1 min-h-0">
+            {messages.length === 0 && !isGenerating && (
+              <div className="flex flex-col items-center justify-center h-full text-center py-12">
+                <div className="w-14 h-14 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center mb-4">
+                  <Send className="w-6 h-6 text-brand/60" />
                 </div>
-                <div>
-                  <p className="text-text-primary font-semibold mb-1">Start building</p>
-                  <p className="text-text-muted text-sm max-w-xs">
-                    Describe what you want to create and Noventra AI will generate it for you.
-                  </p>
-                </div>
+                <h3 className="text-base font-medium text-foreground/70 mb-2">Start building</h3>
+                <p className="text-sm text-muted-foreground max-w-[220px] leading-relaxed">
+                  Describe what you want to create and the AI will build it for you.
+                </p>
               </div>
-            ) : (
-              session.messages.map((msg: Message, idx: number) => (
-                <MessageBubble
-                  key={idx}
-                  message={msg}
-                  onShowPreview={(html) => {
-                    setCurrentHtml(html);
-                    setActiveTab("preview");
-                  }}
-                />
-              ))
             )}
+
+            {messages.map((message, i) => (
+              <MessageBubble key={i} message={message} />
+            ))}
+
             {isGenerating && (
-              <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-surface-1 border border-border w-fit">
-                <Loader2 size={16} className="animate-spin text-brand" />
-                <span className="text-sm text-text-muted">Generating…</span>
+              <div className="flex justify-start mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-brand/20 border border-brand/30 flex items-center justify-center">
+                    <Loader2 className="w-3.5 h-3.5 text-brand animate-spin" />
+                  </div>
+                  <div className="glass-card border border-white/10 px-4 py-3 rounded-2xl rounded-tl-sm">
+                    <div className="flex gap-1.5 items-center">
+                      {[0, 1, 2].map((idx) => (
+                        <div
+                          key={idx}
+                          className="w-1.5 h-1.5 rounded-full bg-brand/60 animate-bounce"
+                          style={{ animationDelay: `${idx * 0.15}s` }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
+
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Inline error banner */}
-          {sendError && !isGenerating && (
-            <SessionErrorBanner
-              error={sendError}
+          {/* Error banner */}
+          {apiError && (
+            <ErrorBanner
+              message={apiError.message}
+              isApiKeyError={apiError.isApiKeyError}
               onRetry={handleRetry}
-              onLogout={handleLogout}
+              onOpenSettings={() => {
+                setShowApiKeyModal(true);
+                setApiError(null);
+              }}
+              onDismiss={() => setApiError(null)}
             />
           )}
 
           {/* Input area */}
-          <div className="p-4 border-t border-border bg-surface-1 shrink-0">
-            <div className="flex items-end gap-2 bg-surface-2 rounded-xl border border-border p-2">
+          <div className="shrink-0 p-4 border-t border-white/5">
+            <div className="flex items-end gap-2 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 focus-within:border-brand/40 focus-within:ring-1 focus-within:ring-brand/20 transition-all">
               <textarea
                 ref={textareaRef}
                 value={input}
-                onChange={(e) => {
-                  setInput(e.target.value);
-                  if (sendError) setSendError(null);
-                }}
+                onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Describe what to build or modify…"
-                rows={1}
+                placeholder="Describe what to build or modify..."
                 disabled={isGenerating}
-                className="flex-1 bg-transparent text-text-primary placeholder:text-text-muted text-sm resize-none outline-none py-1 px-2 min-h-[36px] max-h-[160px] disabled:opacity-50"
+                rows={1}
+                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none disabled:opacity-60 leading-relaxed min-h-[24px]"
               />
               <button
-                onClick={handleSend}
-                disabled={!input.trim() || isGenerating}
-                className="p-2 rounded-lg btn-primary disabled:opacity-40 disabled:cursor-not-allowed shrink-0 transition-all"
+                onClick={() => sendMessage(input)}
+                disabled={isGenerating || !input.trim()}
+                className="shrink-0 w-8 h-8 rounded-xl btn-primary flex items-center justify-center disabled:opacity-40 transition-all"
               >
                 {isGenerating ? (
-                  <Loader2 size={18} className="animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
-                  <Send size={18} />
+                  <Send className="w-3.5 h-3.5" />
                 )}
               </button>
             </div>
-            <p className="text-xs text-text-muted/60 mt-2 text-center">
-              Press Enter to send · Shift+Enter for new line
+            <p className="text-xs text-muted-foreground/40 mt-2 text-center">
+              Enter to send · Shift+Enter for new line
             </p>
           </div>
         </div>
 
-        {/* Preview / Code panel */}
-        <div className="hidden md:flex flex-col flex-1 overflow-hidden">
+        {/* Preview panel — only visible on md+ screens */}
+        <div className="flex-1 flex-col min-h-0 hidden md:flex">
           {/* Tab bar */}
-          <div className="flex items-center gap-1 px-4 py-2 border-b border-border bg-surface-1 shrink-0">
+          <div className="shrink-0 flex items-center gap-1 px-4 py-2 border-b border-white/5 bg-background/50">
             <button
               onClick={() => setActiveTab("preview")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 activeTab === "preview"
-                  ? "bg-brand/10 text-brand"
-                  : "text-text-muted hover:text-text-primary"
+                  ? "bg-brand/15 text-brand border border-brand/20"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
               }`}
             >
-              <Eye size={14} />
+              <Eye className="w-3.5 h-3.5" />
               Preview
             </button>
             <button
               onClick={() => setActiveTab("code")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 activeTab === "code"
-                  ? "bg-brand/10 text-brand"
-                  : "text-text-muted hover:text-text-primary"
+                  ? "bg-brand/15 text-brand border border-brand/20"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
               }`}
             >
-              <Code2 size={14} />
+              <Code2 className="w-3.5 h-3.5" />
               Code
             </button>
           </div>
 
-          {/* Panel content */}
-          <div className="flex-1 overflow-hidden">
-            {activeTab === "preview" ? (
-              <LivePreview htmlContent={currentHtml} />
-            ) : (
-              <div className="h-full overflow-auto bg-surface p-4">
-                {currentHtml ? (
-                  <pre className="text-xs text-text-secondary font-mono whitespace-pre-wrap break-all leading-relaxed">
-                    {currentHtml}
-                  </pre>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-text-muted text-sm">
-                    No code generated yet
+          {/* Tab content */}
+          {activeTab === "preview" ? (
+            <LivePreview htmlContent={lastHtml} onViewCode={() => setActiveTab("code")} />
+          ) : (
+            <div className="flex-1 overflow-auto p-4 min-h-0">
+              {codeContent ? (
+                <div className="rounded-xl overflow-hidden border border-white/10 bg-zinc-950">
+                  <div className="flex items-center justify-between px-4 py-2.5 bg-white/5 border-b border-white/10">
+                    <div className="flex items-center gap-3">
+                      <div className="flex gap-1.5">
+                        <div className="w-3 h-3 rounded-full bg-red-500/60" />
+                        <div className="w-3 h-3 rounded-full bg-yellow-500/60" />
+                        <div className="w-3 h-3 rounded-full bg-green-500/60" />
+                      </div>
+                      <span className="text-xs text-muted-foreground font-mono">index.html</span>
+                    </div>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(codeContent)}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-white/5"
+                    >
+                      Copy
+                    </button>
                   </div>
-                )}
-              </div>
-            )}
-          </div>
+                  <pre className="p-4 overflow-auto text-xs font-mono text-foreground/80 leading-relaxed whitespace-pre-wrap break-words">
+                    {codeContent}
+                  </pre>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center py-12">
+                  <Code2 className="w-10 h-10 text-muted-foreground/30 mb-3" />
+                  <p className="text-sm text-muted-foreground/50">No code generated yet</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* API Key Modal */}
+      {showApiKeyModal && <ApiKeyModal onClose={() => setShowApiKeyModal(false)} />}
+
+      {/* Alarm Notification */}
+      {activeAlarm && (
+        <AlarmNotification
+          message={activeAlarm.message}
+          onDismiss={() => setActiveAlarm(null)}
+        />
+      )}
+
+      {/* Audio Enable Prompt */}
+      {showAudioPrompt && (
+        <AudioEnablePrompt
+          onEnabled={() => setShowAudioPrompt(false)}
+          onDismiss={() => setShowAudioPrompt(false)}
+        />
+      )}
     </div>
   );
 }

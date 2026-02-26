@@ -1,219 +1,263 @@
-import React from 'react';
-import { useNavigate } from '@tanstack/react-router';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { Zap, Shield, Eye, Code2, Layers, Globe, ArrowRight, ChevronRight } from 'lucide-react';
-import Logo from '../components/Logo';
-import LoginButton from '../components/LoginButton';
+import React from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { useQueryClient } from "@tanstack/react-query";
+import Logo from "../components/Logo";
+import {
+  Sparkles,
+  Zap,
+  Code2,
+  Eye,
+  ArrowRight,
+  LogIn,
+  Loader2,
+  Globe,
+  Smartphone,
+  LayoutDashboard,
+  Server,
+} from "lucide-react";
 
-const FEATURES = [
+const features = [
   {
-    icon: <Zap className="w-6 h-6" />,
-    title: 'AI-Powered Generation',
-    description: 'Describe your vision and watch Noventra.ai build complete, production-ready code instantly.',
-    color: 'brand',
+    icon: <Sparkles className="w-5 h-5" />,
+    title: "AI-Powered Generation",
+    desc: "Describe your app in plain English and watch it come to life instantly.",
   },
   {
-    icon: <Eye className="w-6 h-6" />,
-    title: 'Live Preview',
-    description: 'See your app come to life in real-time with our sandboxed preview across desktop, tablet, and mobile.',
-    color: 'cyan',
+    icon: <Eye className="w-5 h-5" />,
+    title: "Live Preview",
+    desc: "See your application rendered in real time as the AI builds it.",
   },
   {
-    icon: <Layers className="w-6 h-6" />,
-    title: 'Session Management',
-    description: 'Organize your projects into sessions. Pick up where you left off, anytime.',
-    color: 'brand',
+    icon: <Code2 className="w-5 h-5" />,
+    title: "Clean Code Output",
+    desc: "Get production-ready HTML, CSS, and JavaScript you can use anywhere.",
   },
   {
-    icon: <Shield className="w-6 h-6" />,
-    title: 'Decentralized & Secure',
-    description: 'Built on the Internet Computer. Your data is yours — secured by cryptography, not promises.',
-    color: 'cyan',
-  },
-  {
-    icon: <Code2 className="w-6 h-6" />,
-    title: 'Multiple Project Types',
-    description: 'Landing pages, dashboards, mobile UIs, API docs — Noventra.ai handles every project type.',
-    color: 'brand',
-  },
-  {
-    icon: <Globe className="w-6 h-6" />,
-    title: 'Always Available',
-    description: 'No servers to maintain. Runs on the decentralized cloud — 100% uptime guaranteed.',
-    color: 'cyan',
+    icon: <Zap className="w-5 h-5" />,
+    title: "Multiple Project Types",
+    desc: "Landing pages, dashboards, mobile UIs, APIs — build anything.",
   },
 ];
 
-const STATS = [
-  { value: '10x', label: 'Faster Development' },
-  { value: '100%', label: 'On-Chain Storage' },
-  { value: '∞', label: 'Project Types' },
-  { value: '0', label: 'Server Costs' },
+const projectTypes = [
+  { icon: <Globe className="w-5 h-5" />, label: "Landing Pages" },
+  { icon: <LayoutDashboard className="w-5 h-5" />, label: "Dashboards" },
+  { icon: <Smartphone className="w-5 h-5" />, label: "Mobile UIs" },
+  { icon: <Server className="w-5 h-5" />, label: "API Docs" },
 ];
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { identity } = useInternetIdentity();
+  const { login, clear, loginStatus, identity } = useInternetIdentity();
+  const queryClient = useQueryClient();
   const isAuthenticated = !!identity;
+  const isLoggingIn = loginStatus === "logging-in";
+
+  const handleCTA = async () => {
+    if (isAuthenticated) {
+      navigate({ to: "/sessions" });
+    } else {
+      try {
+        await login();
+      } catch (error: unknown) {
+        const err = error as Error;
+        if (err?.message === "User is already authenticated") {
+          await clear();
+          queryClient.clear();
+          setTimeout(() => login(), 300);
+        }
+      }
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex flex-col items-center justify-center text-center px-4 overflow-hidden">
-        {/* Background */}
-        <div
-          className="absolute inset-0 opacity-20"
-          style={{
-            backgroundImage: 'url(/assets/generated/noventra-hero-bg.dim_1920x1080.png)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          }}
-        />
-        {/* Gradient overlay */}
-        <div className="absolute inset-0" style={{
-          background: 'radial-gradient(ellipse at 50% 0%, oklch(0.65 0.22 25 / 0.15) 0%, transparent 60%), radial-gradient(ellipse at 80% 80%, oklch(0.72 0.18 195 / 0.15) 0%, transparent 50%)',
-        }} />
-        {/* Scanline effect */}
-        <div className="absolute inset-0 scanline opacity-30" />
-
-        {/* Content */}
-        <div className="relative z-10 max-w-4xl mx-auto animate-fade-in">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-cyan/30 text-cyan text-sm font-medium mb-8">
-            <span className="w-2 h-2 rounded-full bg-cyan animate-pulse" />
-            Built on the Internet Computer
-          </div>
-
-          {/* Headline */}
-          <h1 className="text-5xl md:text-7xl font-bold leading-tight mb-6 tracking-tight">
-            <span className="gradient-text">Build apps with AI</span>
-            <br />
-            <span className="text-text-primary">on the decentralized cloud</span>
-          </h1>
-
-          {/* Sub-headline */}
-          <p className="text-xl text-text-secondary max-w-2xl mx-auto mb-10 leading-relaxed">
-            Describe your idea. Noventra.ai generates complete, beautiful code instantly.
-            No setup. No servers. Just build.
-          </p>
-
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            {isAuthenticated ? (
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <header className="sticky top-0 z-40 border-b border-white/5 bg-background/80 backdrop-blur-xl">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+          <Logo size="small" />
+          <button
+            onClick={handleCTA}
+            disabled={isLoggingIn}
+            className="btn-primary flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium disabled:opacity-60 transition-all"
+          >
+            {isLoggingIn ? (
               <>
-                <button
-                  onClick={() => navigate({ to: '/sessions/new' })}
-                  className="btn-primary flex items-center gap-2 px-8 py-4 rounded-xl text-lg font-semibold"
-                >
-                  Start Building <ArrowRight className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => navigate({ to: '/sessions' })}
-                  className="glass border border-border hover:border-cyan/50 flex items-center gap-2 px-8 py-4 rounded-xl text-lg font-medium text-text-secondary hover:text-text-primary transition-all duration-200"
-                >
-                  My Sessions <ChevronRight className="w-5 h-5" />
-                </button>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Connecting...
+              </>
+            ) : isAuthenticated ? (
+              <>
+                <ArrowRight className="w-4 h-4" />
+                Open App
               </>
             ) : (
               <>
-                <button
-                  onClick={() => navigate({ to: '/sessions/new' })}
-                  className="btn-primary flex items-center gap-2 px-8 py-4 rounded-xl text-lg font-semibold"
-                >
-                  Get Started Free <ArrowRight className="w-5 h-5" />
-                </button>
-                <div className="glass border border-border rounded-xl overflow-hidden">
-                  <LoginButton />
-                </div>
+                <LogIn className="w-4 h-4" />
+                Login
               </>
             )}
-          </div>
+          </button>
         </div>
+      </header>
 
-        {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-text-muted text-xs animate-bounce">
-          <span>Scroll to explore</span>
-          <div className="w-px h-8 bg-gradient-to-b from-text-muted to-transparent" />
-        </div>
-      </section>
+      {/* Hero */}
+      <main className="flex-1">
+        <section className="relative overflow-hidden">
+          {/* Background glow */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(ellipse 80% 50% at 50% -10%, oklch(0.72 0.19 45 / 0.12) 0%, transparent 70%)",
+            }}
+          />
 
-      {/* Stats Section */}
-      <section className="py-16 px-4 border-y border-border/40">
-        <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
-          {STATS.map((stat) => (
-            <div key={stat.label} className="text-center">
-              <div className="text-4xl font-bold gradient-text-brand mb-2">{stat.value}</div>
-              <div className="text-text-muted text-sm">{stat.label}</div>
+          <div className="max-w-4xl mx-auto px-6 pt-24 pb-20 text-center relative">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-brand/30 bg-brand/10 text-brand text-xs font-medium mb-8">
+              <Sparkles className="w-3.5 h-3.5" />
+              AI-Powered App Builder
             </div>
-          ))}
-        </div>
-      </section>
 
-      {/* Features Section */}
-      <section className="py-24 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              <span className="gradient-text">Everything you need</span>
+            {/* Headline */}
+            <h1 className="text-5xl md:text-6xl font-display font-bold text-foreground leading-tight mb-6">
+              Build apps with{" "}
+              <span className="gradient-text">natural language</span>
+            </h1>
+
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
+              Describe what you want to build, and Noventra.ai generates a complete,
+              functional application in seconds. No coding required.
+            </p>
+
+            {/* CTA */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button
+                onClick={handleCTA}
+                disabled={isLoggingIn}
+                className="btn-primary flex items-center gap-2 px-8 py-4 rounded-2xl text-base font-semibold disabled:opacity-60 transition-all shadow-lg shadow-brand/25 hover:shadow-brand/40 hover:-translate-y-0.5"
+              >
+                {isLoggingIn ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Connecting...
+                  </>
+                ) : isAuthenticated ? (
+                  <>
+                    <ArrowRight className="w-5 h-5" />
+                    Go to My Sessions
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="w-5 h-5" />
+                    Get Started Free
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Project type pills */}
+            <div className="flex flex-wrap items-center justify-center gap-3 mt-12">
+              {projectTypes.map((pt) => (
+                <div
+                  key={pt.label}
+                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-muted-foreground"
+                >
+                  <span className="text-brand">{pt.icon}</span>
+                  {pt.label}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Features */}
+        <section className="max-w-6xl mx-auto px-6 py-20">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-display font-bold text-foreground mb-4">
+              Everything you need to build faster
             </h2>
-            <p className="text-text-secondary text-lg max-w-2xl mx-auto">
-              Noventra.ai combines AI code generation with decentralized infrastructure for a truly next-gen development experience.
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              From idea to working prototype in minutes, not hours.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {FEATURES.map((feature) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {features.map((f) => (
               <div
-                key={feature.title}
-                className="glass-card p-6 group hover:border-brand/40 transition-all duration-300 hover:-translate-y-1"
-                style={{ '--hover-glow': feature.color === 'brand' ? 'oklch(0.65 0.22 25 / 0.15)' : 'oklch(0.72 0.18 195 / 0.15)' } as React.CSSProperties}
+                key={f.title}
+                className="glass-card rounded-2xl p-6 border border-white/10 hover:border-brand/20 transition-all duration-300 group"
               >
-                <div className={`
-                  w-12 h-12 rounded-xl flex items-center justify-center mb-4
-                  ${feature.color === 'brand'
-                    ? 'bg-brand/10 text-brand border border-brand/20 group-hover:shadow-brand-glow-sm'
-                    : 'bg-cyan/10 text-cyan border border-cyan/20 group-hover:shadow-cyan-glow-sm'
-                  }
-                  transition-all duration-300
-                `}>
-                  {feature.icon}
+                <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center text-brand mb-4 group-hover:bg-brand/20 transition-colors">
+                  {f.icon}
                 </div>
-                <h3 className="text-lg font-semibold text-text-primary mb-2">{feature.title}</h3>
-                <p className="text-text-muted text-sm leading-relaxed">{feature.description}</p>
+                <h3 className="text-base font-semibold text-foreground mb-2">{f.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* CTA Section */}
-      <section className="py-24 px-4">
-        <div className="max-w-3xl mx-auto text-center">
-          <div className="glass-card p-12 border border-brand/20 shadow-brand-glow">
-            <Logo size="large" />
-            <h2 className="text-4xl font-bold mt-8 mb-4 gradient-text">
+        {/* CTA section */}
+        <section className="max-w-4xl mx-auto px-6 py-16 text-center">
+          <div className="glass-card rounded-3xl p-12 border border-brand/20 relative overflow-hidden">
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background:
+                  "radial-gradient(ellipse 60% 60% at 50% 50%, oklch(0.72 0.19 45 / 0.08) 0%, transparent 70%)",
+              }}
+            />
+            <h2 className="text-3xl font-display font-bold text-foreground mb-4 relative">
               Ready to build something amazing?
             </h2>
-            <p className="text-text-secondary text-lg mb-8">
-              Join the future of AI-powered development on the decentralized cloud.
+            <p className="text-muted-foreground mb-8 relative">
+              Join thousands of builders using AI to create faster.
             </p>
             <button
-              onClick={() => navigate({ to: '/sessions/new' })}
-              className="btn-primary inline-flex items-center gap-2 px-10 py-4 rounded-xl text-lg font-semibold"
+              onClick={handleCTA}
+              disabled={isLoggingIn}
+              className="btn-primary inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-base font-semibold disabled:opacity-60 transition-all shadow-lg shadow-brand/25 hover:shadow-brand/40 hover:-translate-y-0.5 relative"
             >
-              Start Your First Project <ArrowRight className="w-5 h-5" />
+              {isLoggingIn ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Connecting...
+                </>
+              ) : isAuthenticated ? (
+                <>
+                  <ArrowRight className="w-5 h-5" />
+                  Open My Sessions
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5" />
+                  Start Building Now
+                </>
+              )}
             </button>
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/40 py-8 px-4">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-text-muted text-sm">
-          <div className="flex items-center gap-2">
-            <Logo size="small" />
-          </div>
-          <p>© {new Date().getFullYear()} Noventra.ai. All rights reserved.</p>
+      <footer className="border-t border-white/5 py-8">
+        <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <Logo size="small" />
+          <p className="text-xs text-muted-foreground">
+            © {new Date().getFullYear()} Noventra.ai. Built with{" "}
+            <span className="text-brand">♥</span> using{" "}
+            <a
+              href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brand hover:text-brand/80 transition-colors"
+            >
+              caffeine.ai
+            </a>
+          </p>
         </div>
       </footer>
     </div>

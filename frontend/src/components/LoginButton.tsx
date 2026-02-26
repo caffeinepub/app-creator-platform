@@ -1,14 +1,14 @@
-import React from 'react';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useQueryClient } from '@tanstack/react-query';
-import { LogIn, LogOut, Loader2 } from 'lucide-react';
+import React from "react";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { useQueryClient } from "@tanstack/react-query";
+import { LogIn, LogOut, Loader2 } from "lucide-react";
 
 export default function LoginButton() {
   const { login, clear, loginStatus, identity } = useInternetIdentity();
   const queryClient = useQueryClient();
 
   const isAuthenticated = !!identity;
-  const isLoggingIn = loginStatus === 'logging-in';
+  const isLoggingIn = loginStatus === "logging-in";
 
   const handleAuth = async () => {
     if (isAuthenticated) {
@@ -17,8 +17,9 @@ export default function LoginButton() {
     } else {
       try {
         await login();
-      } catch (error: any) {
-        if (error.message === 'User is already authenticated') {
+      } catch (error: unknown) {
+        const err = error as Error;
+        if (err?.message === "User is already authenticated") {
           await clear();
           setTimeout(() => login(), 300);
         }
@@ -26,27 +27,35 @@ export default function LoginButton() {
     }
   };
 
+  if (isAuthenticated) {
+    return (
+      <button
+        onClick={handleAuth}
+        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/5 border border-white/10 hover:border-white/20 transition-all duration-200"
+      >
+        <LogOut className="w-4 h-4" />
+        Logout
+      </button>
+    );
+  }
+
   return (
     <button
       onClick={handleAuth}
       disabled={isLoggingIn}
-      className={`
-        flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium
-        transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
-        ${isAuthenticated
-          ? 'glass border border-border text-text-secondary hover:text-text-primary hover:border-brand/50 hover:shadow-brand-glow-sm'
-          : 'btn-primary text-white'
-        }
-      `}
+      className="btn-primary flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium disabled:opacity-60 transition-all duration-200"
     >
       {isLoggingIn ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
-      ) : isAuthenticated ? (
-        <LogOut className="w-4 h-4" />
+        <>
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Connecting...
+        </>
       ) : (
-        <LogIn className="w-4 h-4" />
+        <>
+          <LogIn className="w-4 h-4" />
+          Login
+        </>
       )}
-      <span>{isLoggingIn ? 'Connecting...' : isAuthenticated ? 'Logout' : 'Login'}</span>
     </button>
   );
 }

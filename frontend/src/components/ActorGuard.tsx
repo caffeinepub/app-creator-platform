@@ -1,117 +1,98 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useActor } from '../hooks/useActor';
-import { Flame, AlertTriangle, RefreshCw } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { useActor } from "../hooks/useActor";
+import Logo from "./Logo";
 
 interface ActorGuardProps {
   children: React.ReactNode;
 }
 
-type GuardState = 'loading' | 'ready' | 'error';
-
-// Hard timeout: if actor hasn't resolved in 8s, just proceed
-const HARD_TIMEOUT_MS = 8000;
-
 export default function ActorGuard({ children }: ActorGuardProps) {
-  const { actor, isFetching: actorFetching } = useActor();
-  const [guardState, setGuardState] = useState<GuardState>('loading');
-  const [statusMsg, setStatusMsg] = useState('Connecting…');
-  const hardTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const resolvedRef = useRef(false);
+  const { actor, isFetching } = useActor();
+  const [timedOut, setTimedOut] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
+  const [dots, setDots] = useState(0);
 
-  const startHardTimeout = () => {
-    if (hardTimeoutRef.current) clearTimeout(hardTimeoutRef.current);
-    hardTimeoutRef.current = setTimeout(() => {
-      if (!resolvedRef.current) {
-        resolvedRef.current = true;
-        setGuardState('ready');
+  useEffect(() => {
+    if (!isFetching && actor) return;
+
+    const timeout = setTimeout(() => {
+      if (isFetching || !actor) {
+        setTimedOut(true);
       }
-    }, HARD_TIMEOUT_MS);
-  };
+    }, 10000);
+
+    return () => clearTimeout(timeout);
+  }, [isFetching, actor, retryKey]);
 
   useEffect(() => {
-    startHardTimeout();
-    return () => {
-      if (hardTimeoutRef.current) clearTimeout(hardTimeoutRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (resolvedRef.current) return;
-
-    if (actorFetching) {
-      setStatusMsg('Connecting…');
-      return;
-    }
-
-    // Actor is done fetching (either available or not)
-    resolvedRef.current = true;
-    if (hardTimeoutRef.current) clearTimeout(hardTimeoutRef.current);
-    setStatusMsg('Ready!');
-    setGuardState('ready');
-  }, [actor, actorFetching]);
+    if (!isFetching) return;
+    const interval = setInterval(() => {
+      setDots((d) => (d + 1) % 4);
+    }, 400);
+    return () => clearInterval(interval);
+  }, [isFetching]);
 
   const handleRetry = () => {
-    resolvedRef.current = false;
-    setGuardState('loading');
-    setStatusMsg('Reconnecting…');
-    startHardTimeout();
-    // The actor hook will re-evaluate on its own; just reset our state
+    setTimedOut(false);
+    setRetryKey((k) => k + 1);
+    window.location.reload();
   };
 
-  if (guardState === 'loading') {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-5">
-          <div className="relative">
-            <div className="w-16 h-16 rounded-full bg-brand/10 flex items-center justify-center">
-              <Flame className="w-8 h-8 text-brand animate-pulse" />
-            </div>
-            <div className="absolute inset-0 rounded-full border-2 border-brand/20 animate-spin border-t-brand" />
-          </div>
-          <div className="text-center space-y-1">
-            <p className="text-foreground font-semibold text-lg font-display">Noventra.ai</p>
-            <p className="text-muted-foreground text-sm">{statusMsg}</p>
-          </div>
-          {/* Progress dots */}
-          <div className="flex gap-1.5">
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="w-1.5 h-1.5 rounded-full bg-brand/40 animate-pulse"
-                style={{ animationDelay: `${i * 200}ms` }}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+  if (!isFetching && actor) {
+    return <>{children}</>;
   }
 
-  if (guardState === 'error') {
+  if (timedOut) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="max-w-md w-full glass-card rounded-2xl p-8 text-center space-y-4">
-          <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
-            <AlertTriangle className="w-8 h-8 text-destructive" />
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <div className="text-center max-w-sm">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-2xl overflow-hidden border border-white/10">
+            <img
+              src="/assets/generated/noventra-logo-icon.dim_128x128.png"
+              alt="Noventra.ai"
+              className="w-full h-full object-cover"
+            />
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-foreground font-display">Connection Failed</h2>
-            <p className="text-muted-foreground text-sm mt-2">
-              Unable to reach the backend. Please check your connection and try again.
-            </p>
-          </div>
+          <h2 className="text-xl font-semibold text-foreground mb-2">Connection Timeout</h2>
+          <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
+            Could not connect to the backend. This may be a temporary issue.
+          </p>
           <button
             onClick={handleRetry}
-            className="btn-primary flex items-center gap-2 mx-auto px-6 py-2 rounded-xl"
+            className="btn-primary px-8 py-3 rounded-xl font-medium text-sm"
           >
-            <RefreshCw className="w-4 h-4" />
-            Retry
+            Retry Connection
           </button>
         </div>
       </div>
     );
   }
 
-  return <>{children}</>;
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-6">
+      <div className="text-center">
+        <div className="w-20 h-20 mx-auto mb-6 rounded-2xl overflow-hidden border border-brand/20 shadow-lg shadow-brand/10">
+          <img
+            src="/assets/generated/noventra-logo-icon.dim_128x128.png"
+            alt="Noventra.ai"
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <Logo size="large" />
+        <div className="mt-8 flex items-center justify-center gap-2">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="w-2 h-2 rounded-full bg-brand transition-all duration-300"
+              style={{
+                opacity: dots === i ? 1 : 0.25,
+                transform: dots === i ? "scale(1.4)" : "scale(1)",
+              }}
+            />
+          ))}
+        </div>
+        <p className="mt-4 text-sm text-muted-foreground">Initializing{".".repeat(dots)}</p>
+      </div>
+    </div>
+  );
 }

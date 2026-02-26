@@ -1,26 +1,51 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-25T20:36:44.602Z",
-  "summary": "The diff implements REQ-1 (ActorGuard optimization with 8s hard timeout, status messages, progress dots) and REQ-3 (SessionErrorBanner with friendly messages, Retry and Logout buttons). REQ-2 (backend main.mo optimization) is partially addressed — the initialize() function appears to have been removed/refactored but no explicit evidence of performance optimization is visible in the truncated diff.",
-  "missing_requirements": [
+  "generatedAt": "2026-02-26T14:48:21.274Z",
+  "summary": "The diff implements all three requirements. REQ-1 is addressed via the new useAlarmSound hook (OscillatorNode-based beep pattern, repeating interval, stopAlarm) and AlarmNotification component with a dismiss button. REQ-2 is addressed via useAudioContextInit hook (listens for click/keydown/pointerdown/touchstart), AudioEnablePrompt component ('Click anywhere to enable alarm sound' toast), and integration in App.tsx. REQ-3 is addressed via LivePreview.tsx changes that inject a graceful media-error handler script, use blob URLs, and expand the sandbox/allow attributes. All acceptance criteria appear to be covered.",
+  "missing_requirements": [],
+  "hallucinated_features": [
     {
-      "id": "REQ-2",
-      "requirement": "Optimize backend initialization in main.mo to ensure the initialize() function returns quickly. Avoid blocking or expensive operations during initialization that could cause the frontend to wait.",
-      "reason": "The backend/main.mo diff shows the actor structure but no explicit initialize() function optimization is visible in the truncated content. The frontend-file-summaries.txt notes that useInitializeSystem mutation was removed (implying initialize() may have been removed from backend too), but no evidence of actual backend performance optimization such as removing blocking loops or making initialization fast is present in the diff.",
+      "description": "A Bell test-alarm button added to the ChatPage header that manually triggers a test alarm",
+      "reason": "The build request does not mention a test-alarm or debug button in the UI. The file summary for ChatPage.tsx explicitly mentions 'adds a Bell test-alarm button in the header'. This was not requested.",
       "evidence": [
-        "backend/main.mo",
-        "frontend/src/hooks/useQueries.ts"
+        "frontend/src/pages/ChatPage.tsx",
+        "frontend-file-summaries.txt"
+      ]
+    },
+    {
+      "description": "Listening for postMessage ALARM_TRIGGER events from the iframe in ChatPage",
+      "reason": "The build request does not specify any postMessage-based alarm trigger mechanism from the LivePreview iframe. The file summary mentions ChatPage 'listens for postMessage ALARM_TRIGGER events from the iframe', which is an added integration not requested.",
+      "evidence": [
+        "frontend/src/pages/ChatPage.tsx",
+        "frontend-file-summaries.txt"
+      ]
+    },
+    {
+      "description": "detectAlarmInHtml function that scans AI-generated HTML for alarm trigger markers",
+      "reason": "The build request does not describe any mechanism for detecting alarm triggers embedded in AI-generated HTML content. This pattern-matching logic is an unasked-for feature.",
+      "evidence": [
+        "frontend/src/pages/ChatPage.tsx"
+      ]
+    },
+    {
+      "description": "LivePreview sandbox expanded with allow-popups and allow-pointer-lock plus an allow policy for microphone and camera",
+      "reason": "REQ-3 specifies updating the sandbox to include 'allow-scripts allow-same-origin' and respecting autoplay policies. The diff goes further by adding allow-popups, allow-pointer-lock, microphone, and camera permissions, which were not requested.",
+      "evidence": [
+        "frontend/src/components/LivePreview.tsx",
+        "frontend-file-summaries.txt"
       ]
     }
   ],
-  "hallucinated_features": [],
-  "confidence": 0.72,
+  "confidence": 0.82,
   "changed_files": [
-    "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/ActorGuard.tsx",
-    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/App.tsx",
+    "frontend/src/components/AlarmNotification.tsx",
+    "frontend/src/components/AudioEnablePrompt.tsx",
+    "frontend/src/components/LivePreview.tsx",
+    "frontend/src/hooks/useAlarmSound.ts",
+    "frontend/src/hooks/useAudioContextInit.ts",
     "frontend/src/pages/ChatPage.tsx",
     "project_state.json"
   ]

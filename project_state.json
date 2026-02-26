@@ -1,54 +1,41 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Noventra.ai app with issues: API 401 authentication error and slow loading time (~2 minutes to start).",
-  "architectural_notes": [],
+  "summary": "New project",
+  "architectural_notes": [
+    "Noventra platform may require specific configuration for audio/video playback support"
+  ],
   "known_issues": [
-    "API 401 error: User not found — session/auth token invalid or expired",
-    "App takes ~2 minutes to start/load"
+    "Alarm sound playback fails continuously with errors — likely due to missing or misconfigured audio/video support in Noventra"
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-reduce-the-app-startup-loading-time-from-2-minutes-to-under-10-seconds-optimize-the-actorguard-initialization-flow-by-reducing-retry-delays-lowering-the-hard-timeout-threshold-and-ensuring-the-app-proceeds-to-render-as-soon-as-the-backend-responds-or-a-minimal-viable-connection-is-established-avoid-unnecessary-sequential-awaits-during-startup",
-      "title": "Reduce the app startup/loading time from ~2 minutes to under 10 seconds. Optimize the ActorGuard initialization flow by reducing retry delays, lowering the hard timeout threshold, and ensuring the app proceeds to render as soon as the backend responds or a minimal viable connection is established. Avoid unnecessary sequential awaits during startup.",
+      "id": "feature-implement-a-robust-alarm-sound-system-that-uses-the-web-audio-api-audiocontext-as-the-primary-sound-engine-to-generate-alarm-tones-programmatically-removing-any-dependency-on-external-audio-files-or-urls-that-may-fail-to-load-when-an-alarm-triggers-synthesize-a-repeating-beep-tone-pattern-using-oscillatornode-so-that-sound-playback-works-reliably-without-network-requests-or-file-permission-issues",
+      "title": "Implement a robust alarm sound system that uses the Web Audio API (AudioContext) as the primary sound engine to generate alarm tones programmatically, removing any dependency on external audio files or URLs that may fail to load. When an alarm triggers, synthesize a repeating beep/tone pattern using OscillatorNode so that sound playback works reliably without network requests or file permission issues.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-improve-the-error-handling-for-api-401-user-not-found-errors-in-the-chat-page-instead-of-showing-a-raw-red-error-banner-display-a-user-friendly-message-with-a-retry-button-that-re-attempts-the-request-and-a-suggestion-to-log-out-and-log-back-in-if-the-error-persists",
-      "title": "Improve the error handling for API 401 'User not found' errors in the chat page. Instead of showing a raw red error banner, display a user-friendly message with a 'Retry' button that re-attempts the request, and a suggestion to log out and log back in if the error persists.",
+      "id": "feature-add-a-user-gesture-safe-audio-initialisation-guard-the-web-audio-api-requires-a-user-gesture-before-audiocontext-can-run-on-the-first-user-interaction-after-page-load-click-keydown-or-pointer-event-resume-or-create-the-audiocontext-so-it-is-in-the-running-state-before-any-alarm-fires-display-an-unobtrusive-banner-or-toast-prompting-the-user-to-interact-with-the-page-if-the-audiocontext-is-suspended-when-an-alarm-is-about-to-trigger",
+      "title": "Add a user-gesture-safe audio initialisation guard. The Web Audio API requires a user gesture before AudioContext can run. On the first user interaction after page load (click, keydown, or pointer event), resume or create the AudioContext so it is in the 'running' state before any alarm fires. Display an unobtrusive banner or toast prompting the user to interact with the page if the AudioContext is suspended when an alarm is about to trigger.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-audit-and-fix-any-video-media-elements-in-the-frontend-that-may-be-misconfigured-ensure-all-html5-video-or-audio-elements-include-the-correct-mime-types-and-use-local-or-blob-sources-where-possible-remove-or-replace-any-broken-external-media-urls-if-the-livepreview-sandbox-iframe-is-involved-in-media-playback-errors-update-its-sandbox-attribute-to-include-allow-scripts-allow-same-origin-and-ensure-media-autoplay-policies-are-respected",
+      "title": "Audit and fix any video/media elements in the frontend that may be misconfigured. Ensure all HTML5 video or audio elements include the correct MIME types and use local or blob sources where possible. Remove or replace any broken external media URLs. If the LivePreview sandbox iframe is involved in media playback errors, update its sandbox attribute to include 'allow-scripts allow-same-origin' and ensure media autoplay policies are respected.",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
     }
   ],
-  "new_feature_requests": [
-    {
-      "id": "AR-1",
-      "summary": "Fix API 401 error with friendlier error handling and retry option",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Reduce app loading/startup time (currently ~2 minutes)",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-4",
-      "summary": "Optimize backend initialization in main.mo to ensure the initialize() function returns quickly. Avoid blocking or expensive operations during initialization that could cause the frontend to wait.",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "status": "pending"
-    }
-  ],
-  "gameProjectType": "none",
+  "new_feature_requests": [],
   "projectName": "Noventra.ai",
   "clarification_mode": "instant",
   "clarification_rounds": 0

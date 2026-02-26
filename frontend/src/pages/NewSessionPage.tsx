@@ -1,205 +1,205 @@
-import React, { useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useCreateSession } from '../hooks/useQueries';
-import { Globe, Layers, Smartphone, Code2, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import React, { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useCreateSession } from "../hooks/useQueries";
+import Logo from "../components/Logo";
+import LoginButton from "../components/LoginButton";
+import {
+  Globe,
+  LayoutDashboard,
+  Smartphone,
+  Server,
+  Code2,
+  Gamepad2,
+  ArrowLeft,
+  Loader2,
+  Sparkles,
+} from "lucide-react";
 
-type ProjectType = 'landing' | 'fullstack' | 'mobile' | 'api';
-
-const PROJECT_TYPES: Array<{
-  id: ProjectType;
-  icon: React.ReactNode;
-  label: string;
-  description: string;
-  color: string;
-}> = [
+const projectTypes = [
   {
-    id: 'landing',
+    id: "landing",
     icon: <Globe className="w-6 h-6" />,
-    label: 'Landing Page',
-    description: 'Marketing site, portfolio, or product page',
-    color: 'cyan',
+    label: "Landing Page",
+    desc: "Marketing site with hero, features, and CTA",
+    color: "text-blue-400",
+    bg: "bg-blue-400/10",
+    border: "border-blue-400/20",
   },
   {
-    id: 'fullstack',
-    icon: <Layers className="w-6 h-6" />,
-    label: 'Fullstack App',
-    description: 'Dashboard, SaaS app, or web application',
-    color: 'brand',
-  },
-  {
-    id: 'mobile',
-    icon: <Smartphone className="w-6 h-6" />,
-    label: 'Mobile App',
-    description: 'Mobile-first UI or progressive web app',
-    color: 'cyan',
-  },
-  {
-    id: 'api',
+    id: "fullstack",
     icon: <Code2 className="w-6 h-6" />,
-    label: 'API / Docs',
-    description: 'REST API documentation or developer portal',
-    color: 'brand',
+    label: "Full Stack App",
+    desc: "CRUD interface with data management",
+    color: "text-purple-400",
+    bg: "bg-purple-400/10",
+    border: "border-purple-400/20",
+  },
+  {
+    id: "mobile",
+    icon: <Smartphone className="w-6 h-6" />,
+    label: "Mobile UI",
+    desc: "Touch-friendly mobile-first interface",
+    color: "text-green-400",
+    bg: "bg-green-400/10",
+    border: "border-green-400/20",
+  },
+  {
+    id: "api",
+    icon: <Server className="w-6 h-6" />,
+    label: "API Docs",
+    desc: "API documentation and testing interface",
+    color: "text-yellow-400",
+    bg: "bg-yellow-400/10",
+    border: "border-yellow-400/20",
+  },
+  {
+    id: "dashboard",
+    icon: <LayoutDashboard className="w-6 h-6" />,
+    label: "Dashboard",
+    desc: "Analytics with charts and KPI cards",
+    color: "text-brand",
+    bg: "bg-brand/10",
+    border: "border-brand/20",
+  },
+  {
+    id: "game",
+    icon: <Gamepad2 className="w-6 h-6" />,
+    label: "Game",
+    desc: "Interactive browser-based game",
+    color: "text-pink-400",
+    bg: "bg-pink-400/10",
+    border: "border-pink-400/20",
   },
 ];
 
 export default function NewSessionPage() {
   const navigate = useNavigate();
-  const { identity } = useInternetIdentity();
-  const { mutateAsync: createSession, isPending } = useCreateSession();
+  const createSession = useCreateSession();
+  const [name, setName] = useState("");
+  const [selectedType, setSelectedType] = useState("landing");
+  const [error, setError] = useState("");
 
-  const [name, setName] = useState('');
-  const [projectType, setProjectType] = useState<ProjectType>('landing');
-
-  if (!identity) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="glass-card p-8 text-center max-w-md border border-border/40">
-          <AlertCircle className="w-12 h-12 text-brand mx-auto mb-4" />
-          <h2 className="text-xl font-bold mb-2">Authentication Required</h2>
-          <p className="text-text-muted">Please log in to create a session.</p>
-        </div>
-      </div>
-    );
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmedName = name.trim();
-    if (!trimmedName) {
-      toast.error('Please enter a project name.');
+  const handleCreate = async () => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setError("Please enter a project name.");
       return;
     }
-
+    setError("");
     try {
-      const session = await createSession({ name: trimmedName, projectType });
-
-      const sessionId = session.id;
-      if (!sessionId) {
-        toast.error('Session was created but returned an invalid ID. Please try again.');
-        return;
+      const session = await createSession.mutateAsync({ name: trimmed, projectType: selectedType });
+      if (session) {
+        navigate({ to: "/sessions/$sessionId", params: { sessionId: session.id } });
+      } else {
+        setError("Failed to create session. Please try again.");
       }
+    } catch (err: unknown) {
+      const e = err as Error;
+      setError(e?.message || "Failed to create session. Please try again.");
+    }
+  };
 
-      toast.success('Session created!');
-      navigate({ to: '/sessions/$sessionId', params: { sessionId } });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create session. Please try again.';
-      toast.error(message);
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !createSession.isPending) {
+      handleCreate();
     }
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold gradient-text-brand mb-3">New Session</h1>
-          <p className="text-text-secondary">Set up your project and start building with AI</p>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <header className="sticky top-0 z-40 border-b border-white/5 bg-background/80 backdrop-blur-xl">
+        <div className="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
+          <button onClick={() => navigate({ to: "/" })} className="hover:opacity-80 transition-opacity">
+            <Logo size="small" />
+          </button>
+          <LoginButton />
+        </div>
+      </header>
+
+      <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-10">
+        {/* Back */}
+        <button
+          onClick={() => navigate({ to: "/sessions" })}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Sessions
+        </button>
+
+        {/* Title */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-display font-bold text-foreground mb-2">New Session</h1>
+          <p className="text-muted-foreground text-sm">
+            Give your project a name and choose what you want to build.
+          </p>
         </div>
 
-        {/* Form Card */}
-        <div className="glass-card p-8 border border-border/40">
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Project Name */}
-            <div>
-              <label className="block text-sm font-semibold text-text-secondary mb-3">
-                Project Name
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. My Awesome App, Portfolio Site..."
-                className="
-                  w-full px-4 py-3.5 rounded-xl bg-surface border border-border
-                  text-text-primary placeholder:text-text-muted text-base
-                  input-glow transition-all duration-200
-                  focus:border-cyan/60
-                "
-                autoFocus
-                disabled={isPending}
-              />
+        {/* Form */}
+        <div className="space-y-8">
+          {/* Project name */}
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-foreground/80">Project Name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                setError("");
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder="e.g. My Portfolio, Task Manager, Weather App..."
+              autoFocus
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-brand/50 focus:ring-1 focus:ring-brand/30 transition-all"
+            />
+            {error && <p className="text-xs text-red-400">{error}</p>}
+          </div>
+
+          {/* Project type */}
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-foreground/80">Project Type</label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {projectTypes.map((type) => (
+                <button
+                  key={type.id}
+                  onClick={() => setSelectedType(type.id)}
+                  className={`relative p-4 rounded-xl border text-left transition-all duration-200 ${
+                    selectedType === type.id
+                      ? `${type.bg} ${type.border} border-2`
+                      : "bg-white/5 border-white/10 hover:border-white/20 hover:bg-white/8"
+                  }`}
+                >
+                  {selectedType === type.id && (
+                    <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-current opacity-60" />
+                  )}
+                  <div className={`${type.color} mb-2`}>{type.icon}</div>
+                  <div className="text-sm font-medium text-foreground mb-1">{type.label}</div>
+                  <div className="text-xs text-muted-foreground leading-relaxed">{type.desc}</div>
+                </button>
+              ))}
             </div>
+          </div>
 
-            {/* Project Type */}
-            <div>
-              <label className="block text-sm font-semibold text-text-secondary mb-3">
-                Project Type
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {PROJECT_TYPES.map((type) => (
-                  <button
-                    key={type.id}
-                    type="button"
-                    onClick={() => setProjectType(type.id)}
-                    disabled={isPending}
-                    className={`
-                      flex items-start gap-4 p-4 rounded-xl border text-left
-                      transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed
-                      ${projectType === type.id
-                        ? type.color === 'brand'
-                          ? 'border-brand/60 bg-brand/10 shadow-brand-glow-sm'
-                          : 'border-cyan/60 bg-cyan/10 shadow-cyan-glow-sm'
-                        : 'border-border/60 glass hover:border-border'
-                      }
-                    `}
-                  >
-                    <div className={`
-                      flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center
-                      ${projectType === type.id
-                        ? type.color === 'brand'
-                          ? 'bg-brand/20 text-brand'
-                          : 'bg-cyan/20 text-cyan'
-                        : 'bg-surface-raised text-text-muted'
-                      }
-                      transition-all duration-200
-                    `}>
-                      {type.icon}
-                    </div>
-                    <div>
-                      <div className={`font-semibold text-sm ${projectType === type.id ? (type.color === 'brand' ? 'text-brand' : 'text-cyan') : 'text-text-primary'}`}>
-                        {type.label}
-                      </div>
-                      <div className="text-xs text-text-muted mt-0.5">{type.description}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={!name.trim() || isPending}
-              className="w-full btn-primary py-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isPending ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Creating Session...
-                </>
-              ) : (
-                <>
-                  Start Building
-                  <ArrowRight className="w-5 h-5" />
-                </>
-              )}
-            </button>
-          </form>
-        </div>
-
-        {/* Back link */}
-        <div className="text-center mt-6">
+          {/* Submit */}
           <button
-            onClick={() => navigate({ to: '/sessions' })}
-            disabled={isPending}
-            className="text-text-muted hover:text-text-secondary text-sm transition-colors disabled:opacity-50"
+            onClick={handleCreate}
+            disabled={createSession.isPending || !name.trim()}
+            className="w-full btn-primary py-4 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-60 transition-all shadow-lg shadow-brand/20 hover:shadow-brand/30 hover:-translate-y-0.5"
           >
-            ← Back to Sessions
+            {createSession.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                Create Session
+              </>
+            )}
           </button>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

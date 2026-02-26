@@ -1,173 +1,173 @@
-const OPENROUTER_API_KEY = "sk-or-v1-b6e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5";
+const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+const API_KEY_STORAGE_KEY = "noventra_openrouter_api_key";
 
-export type ProjectType = "landing" | "dashboard" | "mobile" | "fullstack" | "api";
-
-interface Message {
-  role: "user" | "assistant" | "system";
-  content: string;
+export function getStoredApiKey(): string {
+  return localStorage.getItem(API_KEY_STORAGE_KEY) || "";
 }
 
-function getSystemPrompt(projectType: ProjectType): string {
-  const baseInstructions = `You are Noventra AI, an expert web developer and UI/UX designer. 
-You generate complete, beautiful, production-ready HTML/CSS/JS applications.
+export function setStoredApiKey(key: string): void {
+  localStorage.setItem(API_KEY_STORAGE_KEY, key.trim());
+}
 
-CRITICAL RULES:
-1. ALWAYS wrap your complete HTML output in a markdown code block: \`\`\`html ... \`\`\`
-2. The HTML must be a complete document with <!DOCTYPE html>, <html>, <head>, and <body> tags
-3. Use inline CSS and vanilla JavaScript only (no external dependencies except CDN links)
-4. Make the design visually stunning with modern aesthetics
-5. Include all functionality requested by the user
-6. After the code block, provide a brief explanation of what you built`;
+export function clearStoredApiKey(): void {
+  localStorage.removeItem(API_KEY_STORAGE_KEY);
+}
 
-  const projectInstructions: Record<ProjectType, string> = {
-    landing: `${baseInstructions}
+export function hasApiKey(): boolean {
+  const key = getStoredApiKey();
+  return key.length > 10;
+}
 
-PROJECT TYPE: Landing Page
-- Create beautiful marketing landing pages
-- Include hero section, features, testimonials, CTA
-- Use modern gradients, animations, and typography
-- Make it fully responsive`,
+export interface LLMError {
+  message: string;
+  status?: number;
+  isApiKeyError: boolean;
+}
 
-    dashboard: `${baseInstructions}
-
-PROJECT TYPE: Dashboard/Admin Panel
-- Create data-rich dashboard interfaces
-- Include charts (use Chart.js from CDN), stats cards, tables
-- Use a professional dark or light theme
-- Include sidebar navigation`,
-
-    mobile: `${baseInstructions}
-
-PROJECT TYPE: Mobile App UI
-- Create mobile-first UI that looks like a native app
-- Use max-width: 390px centered layout
-- Include bottom navigation, cards, and mobile patterns
-- Add touch-friendly interactions`,
-
-    fullstack: `${baseInstructions}
-
-PROJECT TYPE: Full-Stack Web App
-- Create a complete web application with full functionality
-- Include forms, data management, CRUD operations
-- Use localStorage for data persistence
-- Include proper routing simulation`,
-
-    api: `${baseInstructions}
-
-PROJECT TYPE: API Explorer / Tool
-- Create developer tools and API explorers
-- Include code editors, JSON viewers, request builders
-- Use monospace fonts and developer-friendly UI
-- Include syntax highlighting`,
+function mapErrorToMessage(status: number, body: string): LLMError {
+  if (status === 401) {
+    return {
+      message: "Invalid API key. Please check your OpenRouter API key in Settings.",
+      status,
+      isApiKeyError: true,
+    };
+  }
+  if (status === 403) {
+    return {
+      message: "Access denied. Your API key may not have permission for this model.",
+      status,
+      isApiKeyError: false,
+    };
+  }
+  if (status === 429) {
+    return {
+      message: "Rate limit exceeded. Please wait a moment and try again.",
+      status,
+      isApiKeyError: false,
+    };
+  }
+  if (status === 402) {
+    return {
+      message: "Insufficient credits on your OpenRouter account. Please top up at openrouter.ai.",
+      status,
+      isApiKeyError: false,
+    };
+  }
+  if (status >= 500) {
+    return {
+      message: "The AI service is temporarily unavailable. Please try again in a moment.",
+      status,
+      isApiKeyError: false,
+    };
+  }
+  return {
+    message: `AI service error (${status}). Please try again.`,
+    status,
+    isApiKeyError: false,
   };
-
-  return projectInstructions[projectType] || baseInstructions;
 }
 
-function getModificationPrompt(): string {
-  return `You are Noventra AI, an expert web developer. You are modifying an existing HTML application.
+export function extractHtmlFromResponse(text: string): string {
+  // Try ```html block first
+  const htmlBlockMatch = text.match(/```html\s*([\s\S]*?)```/i);
+  if (htmlBlockMatch) return htmlBlockMatch[1].trim();
 
-CRITICAL RULES:
-1. ALWAYS return the COMPLETE modified HTML document wrapped in: \`\`\`html ... \`\`\`
-2. Apply the requested changes while preserving all existing functionality
-3. The output must be a complete, working HTML document
-4. After the code block, briefly describe what you changed`;
+  // Try full HTML document
+  const doctypeMatch = text.match(/(<!DOCTYPE[\s\S]*?<\/html>)/i);
+  if (doctypeMatch) return doctypeMatch[1].trim();
+
+  // Try <html> tag
+  const htmlTagMatch = text.match(/(<html[\s\S]*?<\/html>)/i);
+  if (htmlTagMatch) return htmlTagMatch[1].trim();
+
+  // Try any code block
+  const codeBlockMatch = text.match(/```[\w]*\s*([\s\S]*?)```/);
+  if (codeBlockMatch) return codeBlockMatch[1].trim();
+
+  return text.trim();
 }
 
 export async function generateAIResponse(
-  userMessage: string,
-  projectType: ProjectType,
-  conversationHistory: Message[],
-  existingHtml?: string
+  messages: Array<{ role: string; content: string }>,
+  projectType: string,
+  projectName: string
 ): Promise<string> {
-  const isModification = !!existingHtml && existingHtml.trim().length > 0;
+  const apiKey = getStoredApiKey();
 
-  const systemPrompt = isModification ? getModificationPrompt() : getSystemPrompt(projectType);
+  if (!apiKey || apiKey.length < 10) {
+    throw {
+      message: "No API key configured. Please add your OpenRouter API key in Settings.",
+      isApiKeyError: true,
+    } as LLMError;
+  }
 
-  const messages: Message[] = [
+  const systemPrompt = `You are an expert web developer and UI/UX designer. You create complete, beautiful, functional single-file HTML applications.
+
+Project: "${projectName}" (Type: ${projectType})
+
+RULES:
+1. Always respond with a COMPLETE, self-contained HTML file
+2. Include all CSS in <style> tags and all JavaScript in <script> tags
+3. Make it visually stunning with modern design (gradients, animations, glassmorphism)
+4. Use a dark theme by default with vibrant accent colors
+5. Make it fully functional and interactive
+6. Include proper error handling in the JavaScript
+7. Wrap your HTML in \`\`\`html ... \`\`\` code blocks
+
+For ${projectType} projects, focus on:
+${projectType === "landing" ? "- Marketing copy, hero sections, feature highlights, CTAs, testimonials" : ""}
+${projectType === "fullstack" ? "- Full CRUD interface, data management, forms, tables, modals" : ""}
+${projectType === "mobile" ? "- Mobile-first design, touch-friendly UI, bottom navigation, card layouts" : ""}
+${projectType === "api" ? "- API documentation, endpoint testing interface, request/response display" : ""}
+${projectType === "dashboard" ? "- Charts, metrics, data visualization, sidebar navigation, KPI cards" : ""}
+${projectType === "game" ? "- Game loop, canvas rendering, score tracking, controls, animations" : ""}`;
+
+  const requestMessages = [
     { role: "system", content: systemPrompt },
+    ...messages.map((m) => ({ role: m.role, content: m.content })),
   ];
 
-  // Add conversation history (excluding system messages)
-  for (const msg of conversationHistory) {
-    if (msg.role !== "system") {
-      messages.push(msg);
-    }
-  }
-
-  // If modifying, include the existing HTML as context
-  if (isModification && existingHtml) {
-    messages.push({
-      role: "user",
-      content: `Here is the current HTML application:\n\`\`\`html\n${existingHtml}\n\`\`\`\n\nNow apply this change: ${userMessage}`,
-    });
-  } else {
-    messages.push({ role: "user", content: userMessage });
-  }
-
+  let response: Response;
   try {
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    response = await fetch(OPENROUTER_API_URL, {
       method: "POST",
       headers: {
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
         "HTTP-Referer": window.location.origin,
-        "X-Title": "Noventra AI",
+        "X-Title": "Noventra.ai",
       },
       body: JSON.stringify({
         model: "google/gemini-2.0-flash-001",
-        messages,
+        messages: requestMessages,
+        max_tokens: 8192,
         temperature: 0.7,
-        max_tokens: 16000,
       }),
     });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        `API error ${response.status}: ${errorData?.error?.message || response.statusText}`
-      );
-    }
-
-    const data = await response.json();
-    const content = data?.choices?.[0]?.message?.content;
-
-    if (!content) {
-      throw new Error("No content in API response");
-    }
-
-    return content;
-  } catch (error) {
-    console.error("LLM API error:", error);
-    throw error;
-  }
-}
-
-export function extractHtmlFromResponse(response: string): string {
-  // Try to match ```html ... ``` blocks (with optional language specifier)
-  const htmlBlockRegex = /```html\s*\n([\s\S]*?)```/i;
-  const match = response.match(htmlBlockRegex);
-
-  if (match && match[1]) {
-    const extracted = match[1].trim();
-    if (extracted.length > 0) {
-      return extracted;
-    }
+  } catch (networkError) {
+    throw {
+      message: "Network error. Please check your internet connection and try again.",
+      isApiKeyError: false,
+    } as LLMError;
   }
 
-  // Fallback: try to find a complete HTML document directly in the response
-  const doctypeRegex = /(<!DOCTYPE html[\s\S]*<\/html>)/i;
-  const doctypeMatch = response.match(doctypeRegex);
-  if (doctypeMatch && doctypeMatch[1]) {
-    return doctypeMatch[1].trim();
+  if (!response.ok) {
+    let body = "";
+    try {
+      body = await response.text();
+    } catch {}
+    throw mapErrorToMessage(response.status, body);
   }
 
-  // Fallback: look for <html> ... </html>
-  const htmlTagRegex = /(<html[\s\S]*<\/html>)/i;
-  const htmlTagMatch = response.match(htmlTagRegex);
-  if (htmlTagMatch && htmlTagMatch[1]) {
-    return htmlTagMatch[1].trim();
+  const data = await response.json();
+  const content = data?.choices?.[0]?.message?.content;
+
+  if (!content) {
+    throw {
+      message: "The AI returned an empty response. Please try again.",
+      isApiKeyError: false,
+    } as LLMError;
   }
 
-  return "";
+  return extractHtmlFromResponse(content);
 }

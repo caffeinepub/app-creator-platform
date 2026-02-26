@@ -1,57 +1,74 @@
-import React, { useState } from 'react';
-import { useSaveCallerUserProfile } from '../hooks/useQueries';
-import { Flame, Loader2, AlertCircle } from 'lucide-react';
+import React, { useState } from "react";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { useSaveCallerUserProfile } from "../hooks/useQueries";
+import { User, Loader2, Sparkles } from "lucide-react";
 
-export default function ProfileSetup() {
-  const [name, setName] = useState('');
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const { mutateAsync: saveProfile, isPending } = useSaveCallerUserProfile();
+interface ProfileSetupProps {
+  onComplete: () => void;
+}
+
+export default function ProfileSetup({ onComplete }: ProfileSetupProps) {
+  const [name, setName] = useState("");
+  const [error, setError] = useState("");
+  const { identity } = useInternetIdentity();
+  const saveProfile = useSaveCallerUserProfile();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
-    setErrorMsg(null);
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setError("Please enter your name.");
+      return;
+    }
+    if (trimmed.length < 2) {
+      setError("Name must be at least 2 characters.");
+      return;
+    }
+    setError("");
     try {
-      await saveProfile({ name: name.trim() });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      // Provide a user-friendly message for common backend errors
-      if (msg.toLowerCase().includes('unauthorized') || msg.toLowerCase().includes('only users')) {
-        setErrorMsg(
-          'Your account does not have permission to save a profile yet. Please try logging out and back in, or contact support.'
-        );
-      } else if (msg.toLowerCase().includes('not ready') || msg.toLowerCase().includes('system is not ready')) {
-        setErrorMsg('The system is still starting up. Please wait a moment and try again.');
-      } else if (msg.toLowerCase().includes('actor not available')) {
-        setErrorMsg('Connection to the backend is not ready. Please refresh the page and try again.');
+      await saveProfile.mutateAsync({ name: trimmed });
+      onComplete();
+    } catch (err: unknown) {
+      const e = err as Error;
+      if (e?.message?.includes("Unauthorized") || e?.message?.includes("not ready")) {
+        setError("Authentication error. Please try logging out and back in.");
+      } else if (e?.message?.includes("connection") || e?.message?.includes("network")) {
+        setError("Connection error. Please check your internet and try again.");
       } else {
-        setErrorMsg(msg || 'An unexpected error occurred. Please try again.');
+        setError("Failed to save profile. Please try again.");
       }
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
+  const principal = identity?.getPrincipal().toString();
+  const shortPrincipal = principal
+    ? principal.slice(0, 5) + "..." + principal.slice(-3)
+    : "";
 
-      {/* Modal */}
-      <div className="relative glass-card p-8 w-full max-w-md border border-cyan/30 shadow-cyan-glow">
+  return (
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div className="glass-card rounded-2xl p-8 w-full max-w-md border border-brand/20 shadow-2xl shadow-brand/10">
         {/* Header */}
-        <div className="flex flex-col items-center gap-4 mb-8">
-          <div className="w-16 h-16 rounded-2xl glass border border-brand/40 flex items-center justify-center shadow-brand-glow">
-            <Flame className="w-8 h-8 text-brand" />
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center">
+            <Sparkles className="w-8 h-8 text-brand" />
           </div>
-          <div className="text-center">
-            <h2 className="text-2xl font-bold gradient-text mb-2">Welcome to Noventra.ai</h2>
-            <p className="text-text-muted text-sm">Set up your profile to get started</p>
-          </div>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Welcome to Noventra.ai</h2>
+          <p className="text-muted-foreground text-sm">
+            Let's set up your profile to get started
+          </p>
+          {shortPrincipal && (
+            <p className="text-xs text-muted-foreground/60 mt-2 font-mono">
+              ID: {shortPrincipal}
+            </p>
+          )}
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground/80 flex items-center gap-2">
+              <User className="w-4 h-4 text-brand" />
               Your Name
             </label>
             <input
@@ -59,40 +76,35 @@ export default function ProfileSetup() {
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
-                if (errorMsg) setErrorMsg(null);
+                setError("");
               }}
               placeholder="Enter your name..."
-              className="
-                w-full px-4 py-3 rounded-xl bg-surface border border-border
-                text-text-primary placeholder:text-text-muted
-                input-glow transition-all duration-200
-                focus:border-cyan/60
-              "
+              disabled={saveProfile.isPending}
               autoFocus
-              disabled={isPending}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-brand/50 focus:ring-1 focus:ring-brand/30 transition-all disabled:opacity-60"
             />
+            {error && (
+              <p className="text-xs text-red-400 flex items-center gap-1">
+                <span>⚠</span> {error}
+              </p>
+            )}
           </div>
-
-          {/* Inline error message */}
-          {errorMsg && (
-            <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm">
-              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-              <span>{errorMsg}</span>
-            </div>
-          )}
 
           <button
             type="submit"
-            disabled={!name.trim() || isPending}
-            className="w-full btn-primary py-3 rounded-xl font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={saveProfile.isPending || !name.trim()}
+            className="w-full btn-primary py-3 rounded-xl font-medium text-sm flex items-center justify-center gap-2 disabled:opacity-60 transition-all"
           >
-            {isPending ? (
+            {saveProfile.isPending ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Saving...</span>
+                Setting up...
               </>
             ) : (
-              <span>Get Started</span>
+              <>
+                <Sparkles className="w-4 h-4" />
+                Get Started
+              </>
             )}
           </button>
         </form>

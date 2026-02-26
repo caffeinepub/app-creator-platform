@@ -1,16 +1,14 @@
 # Specification
 
 ## Summary
-**Goal:** Reduce app startup loading time from ~2 minutes to under 10 seconds, optimize backend initialization, and improve error handling for 401 API errors in the chat page.
+**Goal:** Fix alarm sound playback in Noventra by implementing a Web Audio API-based sound engine and resolving misconfigured media elements.
 
 **Planned changes:**
-- Reduce ActorGuard retry delays by capping exponential backoff at a low value (e.g., max 2 seconds per retry)
-- Lower the ActorGuard hard timeout to no more than 10 seconds
-- Ensure the app proceeds to render as soon as a minimal viable connection is established, avoiding unnecessary sequential awaits
-- Display a meaningful progress indicator or status message on the loading screen during startup
-- Optimize the backend `initialize()` function in main.mo to return quickly without blocking or expensive operations
-- Replace the raw red "API error 401: User not found" banner in the chat page with a user-friendly message: "Session expired. Please try again or log out and log back in."
-- Add a "Retry" button to re-send the failed request on 401 errors
-- Add a "Logout" shortcut link in the 401 error state
+- Replace any external audio file dependencies with programmatic tone generation using Web Audio API (AudioContext + OscillatorNode) that produces a repeating beep pattern when an alarm fires.
+- Add a user-gesture guard that creates/resumes the AudioContext on the first user interaction (click, keydown, or pointer event).
+- Display a toast/banner prompting "Click anywhere to enable alarm sound" if AudioContext is suspended when an alarm triggers, while still showing the visual alarm indicator.
+- Add a "Stop Alarm" / dismiss button that halts the audio and clears the repeat interval.
+- Audit and fix any HTML5 audio/video elements with broken external URLs or incorrect MIME types, replacing them with local/blob sources or graceful fallbacks.
+- Update the LivePreview iframe sandbox attribute to include `allow-scripts allow-same-origin` if needed for media functionality.
 
-**User-visible outcome:** The app becomes interactive in under 10 seconds on a normal connection, and users who encounter a 401 error see a friendly message with actionable options instead of a raw error banner.
+**User-visible outcome:** Alarms play a reliable audible tone immediately when triggered without console errors, users are prompted to interact with the page if audio is blocked, and all media elements across the app function without broken-URL or permission errors.

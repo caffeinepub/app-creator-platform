@@ -1,171 +1,175 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Monitor, Tablet, Smartphone, RefreshCw, ExternalLink } from "lucide-react";
+import { Monitor, Smartphone, Tablet, RefreshCw, ExternalLink, Code2 } from "lucide-react";
 
 interface LivePreviewProps {
   htmlContent: string;
+  onViewCode?: () => void;
 }
 
-type ViewportSize = "desktop" | "tablet" | "mobile";
+type ViewMode = "desktop" | "tablet" | "mobile";
 
-const viewportWidths: Record<ViewportSize, string> = {
-  desktop: "100%",
-  tablet: "768px",
-  mobile: "390px",
+const viewModeConfig: Record<ViewMode, { width: string; icon: React.ReactNode; label: string }> = {
+  desktop: { width: "100%", icon: <Monitor className="w-4 h-4" />, label: "Desktop" },
+  tablet: { width: "768px", icon: <Tablet className="w-4 h-4" />, label: "Tablet" },
+  mobile: { width: "390px", icon: <Smartphone className="w-4 h-4" />, label: "Mobile" },
 };
 
-export default function LivePreview({ htmlContent }: LivePreviewProps) {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [viewport, setViewport] = useState<ViewportSize>("desktop");
-  const [blobUrl, setBlobUrl] = useState<string>("");
-  const [refreshKey, setRefreshKey] = useState(0);
-  const prevBlobUrlRef = useRef<string>("");
+/**
+ * Injects an error handler script into HTML content so that media errors
+ * inside the iframe are caught gracefully instead of bubbling up as unhandled
+ * MediaError / net::ERR_BLOCKED_BY_RESPONSE errors.
+ */
+function sanitizeHtmlForPreview(html: string): string {
+  if (!html) return html;
 
-  // Update blob URL whenever htmlContent or refreshKey changes
-  useEffect(() => {
-    // Revoke previous blob URL to prevent memory leaks
-    if (prevBlobUrlRef.current) {
-      URL.revokeObjectURL(prevBlobUrlRef.current);
-      prevBlobUrlRef.current = "";
+  // Inject a small error-handler script right after <head> (or at the top)
+  const errorHandlerScript = `
+<script>
+(function() {
+  // Gracefully handle media errors inside the preview iframe
+  document.addEventListener('error', function(e) {
+    var el = e.target;
+    if (el && (el.tagName === 'AUDIO' || el.tagName === 'VIDEO')) {
+      // Replace broken media with a styled placeholder
+      var placeholder = document.createElement('div');
+      placeholder.style.cssText = 'display:flex;align-items:center;justify-content:center;background:#1a1a2e;border:1px solid #333;border-radius:8px;padding:16px;color:#888;font-family:sans-serif;font-size:13px;min-height:60px;';
+      placeholder.textContent = '⚠ Media unavailable in preview';
+      if (el.parentNode) el.parentNode.replaceChild(placeholder, el);
     }
+  }, true);
 
-    if (!htmlContent || htmlContent.trim().length === 0) {
+  // Override AudioContext to prevent "not allowed to start" warnings
+  // by auto-resuming on any user interaction
+  var _AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (_AudioContext) {
+    var _orig = _AudioContext.prototype.constructor;
+    document.addEventListener('click', function resumeCtx() {
+      document.querySelectorAll('audio, video').forEach(function(m) {
+        if (m.paused) { try { m.play().catch(function(){}); } catch(e){} }
+      });
+    }, { once: true });
+  }
+})();
+</script>`;
+
+  // Insert after <head> tag if present, otherwise prepend
+  if (/<head[\s>]/i.test(html)) {
+    return html.replace(/(<head[^>]*>)/i, `$1${errorHandlerScript}`);
+  }
+  return errorHandlerScript + html;
+}
+
+export default function LivePreview({ htmlContent, onViewCode }: LivePreviewProps) {
+  const [blobUrl, setBlobUrl] = useState<string>("");
+  const [viewMode, setViewMode] = useState<ViewMode>("desktop");
+  const [refreshKey, setRefreshKey] = useState(0);
+  const prevUrlRef = useRef<string>("");
+
+  useEffect(() => {
+    if (!htmlContent) {
       setBlobUrl("");
       return;
     }
+    const sanitized = sanitizeHtmlForPreview(htmlContent);
+    const blob = new Blob([sanitized], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    setBlobUrl(url);
 
-    try {
-      const blob = new Blob([htmlContent], { type: "text/html" });
-      const url = URL.createObjectURL(blob);
-      prevBlobUrlRef.current = url;
-      setBlobUrl(url);
-    } catch (err) {
-      console.error("Failed to create blob URL for preview:", err);
-      setBlobUrl("");
+    if (prevUrlRef.current) {
+      URL.revokeObjectURL(prevUrlRef.current);
     }
+    prevUrlRef.current = url;
 
-    // Cleanup on unmount
     return () => {
-      if (prevBlobUrlRef.current) {
-        URL.revokeObjectURL(prevBlobUrlRef.current);
-        prevBlobUrlRef.current = "";
-      }
+      URL.revokeObjectURL(url);
     };
   }, [htmlContent, refreshKey]);
 
-  const handleRefresh = () => {
-    setRefreshKey((k) => k + 1);
-  };
-
-  const handleOpenInNewTab = () => {
-    if (!htmlContent || htmlContent.trim().length === 0) return;
-    const blob = new Blob([htmlContent], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
-    // Revoke after a short delay to allow the tab to load
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
-  };
-
-  const isEmpty = !htmlContent || htmlContent.trim().length === 0;
+  if (!htmlContent) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-background/50">
+        <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4">
+          <Monitor className="w-8 h-8 text-muted-foreground/40" />
+        </div>
+        <h3 className="text-base font-medium text-foreground/60 mb-2">Live preview will appear here</h3>
+        <p className="text-sm text-muted-foreground/40 max-w-xs leading-relaxed">
+          Send a message to generate your application and see it rendered in real time.
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col h-full bg-surface-1 rounded-xl overflow-hidden border border-border">
+    <div className="flex-1 flex flex-col min-h-0">
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-surface-2 shrink-0">
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setViewport("desktop")}
-            title="Desktop"
-            className={`p-1.5 rounded transition-colors ${
-              viewport === "desktop"
-                ? "text-brand bg-brand/10"
-                : "text-text-muted hover:text-text-primary"
-            }`}
-          >
-            <Monitor size={16} />
-          </button>
-          <button
-            onClick={() => setViewport("tablet")}
-            title="Tablet"
-            className={`p-1.5 rounded transition-colors ${
-              viewport === "tablet"
-                ? "text-brand bg-brand/10"
-                : "text-text-muted hover:text-text-primary"
-            }`}
-          >
-            <Tablet size={16} />
-          </button>
-          <button
-            onClick={() => setViewport("mobile")}
-            title="Mobile"
-            className={`p-1.5 rounded transition-colors ${
-              viewport === "mobile"
-                ? "text-brand bg-brand/10"
-                : "text-text-muted hover:text-text-primary"
-            }`}
-          >
-            <Smartphone size={16} />
-          </button>
+      <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-background/50 shrink-0">
+        {/* View mode toggles */}
+        <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1">
+          {(Object.keys(viewModeConfig) as ViewMode[]).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => setViewMode(mode)}
+              title={viewModeConfig[mode].label}
+              className={`p-1.5 rounded-md transition-all duration-200 ${
+                viewMode === mode
+                  ? "bg-brand/20 text-brand"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+              }`}
+            >
+              {viewModeConfig[mode].icon}
+            </button>
+          ))}
         </div>
 
-        <span className="text-xs text-text-muted font-mono">
-          {isEmpty ? "No preview" : `${viewport} view`}
-        </span>
-
+        {/* Actions */}
         <div className="flex items-center gap-1">
+          {onViewCode && (
+            <button
+              onClick={onViewCode}
+              title="View Code"
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all"
+            >
+              <Code2 className="w-4 h-4" />
+            </button>
+          )}
           <button
-            onClick={handleRefresh}
-            disabled={isEmpty}
+            onClick={() => setRefreshKey((k) => k + 1)}
             title="Refresh preview"
-            className="p-1.5 rounded text-text-muted hover:text-text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all"
           >
-            <RefreshCw size={16} />
+            <RefreshCw className="w-4 h-4" />
           </button>
-          <button
-            onClick={handleOpenInNewTab}
-            disabled={isEmpty}
-            title="Open in new tab"
-            className="p-1.5 rounded text-text-muted hover:text-text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <ExternalLink size={16} />
-          </button>
+          {blobUrl && (
+            <a
+              href={blobUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Open in new tab"
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all"
+            >
+              <ExternalLink className="w-4 h-4" />
+            </a>
+          )}
         </div>
       </div>
 
       {/* Preview area */}
-      <div className="flex-1 overflow-auto bg-zinc-900 flex items-start justify-center p-4">
-        {isEmpty ? (
-          <div className="flex flex-col items-center justify-center h-full w-full text-center gap-3 py-16">
-            <div className="w-16 h-16 rounded-2xl bg-surface-2 flex items-center justify-center">
-              <Monitor size={28} className="text-text-muted" />
-            </div>
-            <p className="text-text-muted text-sm font-medium">Live preview will appear here</p>
-            <p className="text-text-muted/60 text-xs max-w-xs">
-              Send a message to generate your application and see it rendered in real time.
-            </p>
-          </div>
-        ) : (
-          <div
-            className="bg-white rounded-lg overflow-hidden shadow-2xl transition-all duration-300"
-            style={{
-              width: viewportWidths[viewport],
-              maxWidth: "100%",
-              minHeight: "500px",
-              height: "100%",
-            }}
-          >
-            {blobUrl && (
-              <iframe
-                ref={iframeRef}
-                key={blobUrl}
-                src={blobUrl}
-                title="Live Preview"
-                className="w-full h-full border-0"
-                style={{ minHeight: "500px", display: "block" }}
-                sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
-              />
-            )}
-          </div>
-        )}
+      <div className="flex-1 overflow-auto bg-zinc-950 flex justify-center min-h-0 p-4">
+        <div
+          className="h-full transition-all duration-300 rounded-lg overflow-hidden border border-white/10 shadow-2xl"
+          style={{ width: viewModeConfig[viewMode].width, minHeight: "100%" }}
+        >
+          {blobUrl && (
+            <iframe
+              key={`${blobUrl}-${refreshKey}`}
+              src={blobUrl}
+              className="w-full h-full border-0"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-pointer-lock"
+              allow="autoplay; microphone; camera"
+              title="Live Preview"
+            />
+          )}
+        </div>
       </div>
     </div>
   );
