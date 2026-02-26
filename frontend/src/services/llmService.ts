@@ -67,12 +67,18 @@ function mapErrorToMessage(status: number, body: string): LLMError {
   };
 }
 
-export function extractHtmlFromResponse(text: string): string {
+/**
+ * Extracts HTML content from an AI response string.
+ * Returns the extracted HTML string, or null if no HTML was found.
+ */
+export function extractHtmlFromResponse(text: string): string | null {
+  if (!text) return null;
+
   // Try ```html block first
   const htmlBlockMatch = text.match(/```html\s*([\s\S]*?)```/i);
   if (htmlBlockMatch) return htmlBlockMatch[1].trim();
 
-  // Try full HTML document
+  // Try full HTML document with DOCTYPE
   const doctypeMatch = text.match(/(<!DOCTYPE[\s\S]*?<\/html>)/i);
   if (doctypeMatch) return doctypeMatch[1].trim();
 
@@ -80,18 +86,29 @@ export function extractHtmlFromResponse(text: string): string {
   const htmlTagMatch = text.match(/(<html[\s\S]*?<\/html>)/i);
   if (htmlTagMatch) return htmlTagMatch[1].trim();
 
-  // Try any code block
-  const codeBlockMatch = text.match(/```[\w]*\s*([\s\S]*?)```/);
-  if (codeBlockMatch) return codeBlockMatch[1].trim();
+  // No HTML found
+  return null;
+}
 
-  return text.trim();
+/**
+ * Returns true if the given string contains extractable HTML content.
+ */
+export function isHtmlContent(text: string): boolean {
+  return extractHtmlFromResponse(text) !== null;
+}
+
+export interface AIResponse {
+  /** The raw text content from the AI (for display in chat) */
+  rawContent: string;
+  /** The extracted HTML, or null if the response contained no HTML */
+  htmlContent: string | null;
 }
 
 export async function generateAIResponse(
   messages: Array<{ role: string; content: string }>,
   projectType: string,
   projectName: string
-): Promise<string> {
+): Promise<AIResponse> {
   const apiKey = getStoredApiKey();
 
   if (!apiKey || apiKey.length < 10) {
@@ -113,6 +130,28 @@ RULES:
 5. Make it fully functional and interactive
 6. Include proper error handling in the JavaScript
 7. Wrap your HTML in \`\`\`html ... \`\`\` code blocks
+
+AUDIO RULES (CRITICAL - follow exactly):
+- NEVER use <audio> tags or new Audio() with file paths (e.g. "alarm.mp3", "sound.wav") — these files do not exist in the preview environment and will cause errors.
+- NEVER call alert(), confirm(), or prompt() for error messages — these block the page.
+- For ALL sound/audio needs, use ONLY the Web Audio API (AudioContext, OscillatorNode, GainNode).
+- Example alarm beep pattern using Web Audio API:
+  function playBeep() {
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.01);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.3);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.35);
+    } catch(e) { console.warn('Audio not available'); }
+  }
 
 For ${projectType} projects, focus on:
 ${projectType === "landing" ? "- Marketing copy, hero sections, feature highlights, CTAs, testimonials" : ""}
@@ -169,5 +208,8 @@ ${projectType === "game" ? "- Game loop, canvas rendering, score tracking, contr
     } as LLMError;
   }
 
-  return extractHtmlFromResponse(content);
+  return {
+    rawContent: content,
+    htmlContent: extractHtmlFromResponse(content),
+  };
 }

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "@tanstack/react-router";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useGetSession, useAddMessage } from "../hooks/useQueries";
-import { generateAIResponse, hasApiKey, LLMError } from "../services/llmService";
+import { generateAIResponse, hasApiKey, LLMError, extractHtmlFromResponse } from "../services/llmService";
 import Logo from "../components/Logo";
 import LoginButton from "../components/LoginButton";
 import MessageBubble from "../components/MessageBubble";
@@ -94,9 +94,6 @@ function ApiKeyModal({ onClose }: { onClose: () => void }) {
 // ─── Alarm detector: scans AI-generated HTML for alarm triggers ───────────────
 function detectAlarmInHtml(html: string): string | null {
   if (!html) return null;
-  // Look for common alarm-related patterns in the generated HTML
-  // The AI might generate a page that includes alarm functionality
-  // We detect if the HTML contains alarm trigger markers
   const alarmPatterns = [
     /data-alarm-trigger="([^"]+)"/i,
     /id="alarm-trigger"[^>]*data-message="([^"]+)"/i,
@@ -141,13 +138,20 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [session?.messages, isGenerating]);
 
-  // Extract latest HTML from session messages
+  // Extract latest HTML from session messages on load.
+  // Only set lastHtml if the stored message content actually contains HTML.
   useEffect(() => {
     if (!session?.messages) return;
     const assistantMessages = session.messages.filter((m) => m.role === "assistant");
     if (assistantMessages.length > 0) {
-      const latest = assistantMessages[assistantMessages.length - 1];
-      setLastHtml(latest.content);
+      // Walk backwards to find the most recent message that contains HTML
+      for (let i = assistantMessages.length - 1; i >= 0; i--) {
+        const extracted = extractHtmlFromResponse(assistantMessages[i].content);
+        if (extracted) {
+          setLastHtml(extracted);
+          break;
+        }
+      }
     }
   }, [session?.messages]);
 
@@ -199,12 +203,28 @@ export default function ChatPage() {
         }));
         history.push({ role: "user", content: text });
 
-        const html = await generateAIResponse(history, session.projectType, session.name);
-        setLastHtml(html);
+        const aiResponse = await generateAIResponse(history, session.projectType, session.name);
 
-        // Save assistant response
-        await addMessage.mutateAsync({ sessionId, role: "assistant", content: html });
-        setActiveTab("preview");
+        // Save the raw AI response as the assistant message (for chat display)
+        await addMessage.mutateAsync({
+          sessionId,
+          role: "assistant",
+          content: aiResponse.rawContent,
+        });
+
+        // Only update the live preview and switch tabs if actual HTML was returned
+        if (aiResponse.htmlContent) {
+          setLastHtml(aiResponse.htmlContent);
+          setActiveTab("preview");
+
+          // Check for alarm triggers in the generated HTML
+          const alarmMsg = detectAlarmInHtml(aiResponse.htmlContent);
+          if (alarmMsg) {
+            setActiveAlarm({ id: Date.now().toString(), message: alarmMsg });
+          }
+        }
+        // If no HTML, the chat message is already saved — the user sees the text response
+        // and the previous preview (if any) remains unchanged.
       } catch (err: unknown) {
         const llmErr = err as LLMError;
         setApiError({
@@ -473,7 +493,7 @@ export default function ChatPage() {
               onClick={() => setActiveTab("preview")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 activeTab === "preview"
-                  ? "bg-brand/15 text-brand border border-brand/20"
+                  ? "bg-brand/15 text-brand"
                   : "text-muted-foreground hover:text-foreground hover:bg-white/5"
               }`}
             >
@@ -484,7 +504,7 @@ export default function ChatPage() {
               onClick={() => setActiveTab("code")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 activeTab === "code"
-                  ? "bg-brand/15 text-brand border border-brand/20"
+                  ? "bg-brand/15 text-brand"
                   : "text-muted-foreground hover:text-foreground hover:bg-white/5"
               }`}
             >
@@ -495,35 +515,25 @@ export default function ChatPage() {
 
           {/* Tab content */}
           {activeTab === "preview" ? (
-            <LivePreview htmlContent={lastHtml} onViewCode={() => setActiveTab("code")} />
+            <LivePreview
+              htmlContent={lastHtml}
+              onViewCode={() => setActiveTab("code")}
+            />
           ) : (
-            <div className="flex-1 overflow-auto p-4 min-h-0">
+            <div className="flex-1 overflow-auto min-h-0">
               {codeContent ? (
-                <div className="rounded-xl overflow-hidden border border-white/10 bg-zinc-950">
-                  <div className="flex items-center justify-between px-4 py-2.5 bg-white/5 border-b border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div className="flex gap-1.5">
-                        <div className="w-3 h-3 rounded-full bg-red-500/60" />
-                        <div className="w-3 h-3 rounded-full bg-yellow-500/60" />
-                        <div className="w-3 h-3 rounded-full bg-green-500/60" />
-                      </div>
-                      <span className="text-xs text-muted-foreground font-mono">index.html</span>
-                    </div>
-                    <button
-                      onClick={() => navigator.clipboard.writeText(codeContent)}
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-white/5"
-                    >
-                      Copy
-                    </button>
-                  </div>
-                  <pre className="p-4 overflow-auto text-xs font-mono text-foreground/80 leading-relaxed whitespace-pre-wrap break-words">
-                    {codeContent}
-                  </pre>
-                </div>
+                <pre className="p-4 text-xs font-mono text-foreground/80 leading-relaxed whitespace-pre-wrap break-words">
+                  {codeContent}
+                </pre>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-center py-12">
-                  <Code2 className="w-10 h-10 text-muted-foreground/30 mb-3" />
-                  <p className="text-sm text-muted-foreground/50">No code generated yet</p>
+                <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                  <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4">
+                    <Code2 className="w-8 h-8 text-muted-foreground/40" />
+                  </div>
+                  <h3 className="text-base font-medium text-foreground/60 mb-2">No code yet</h3>
+                  <p className="text-sm text-muted-foreground/40 max-w-xs leading-relaxed">
+                    Send a message to generate your application and see the code here.
+                  </p>
                 </div>
               )}
             </div>
@@ -531,10 +541,7 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* API Key Modal */}
-      {showApiKeyModal && <ApiKeyModal onClose={() => setShowApiKeyModal(false)} />}
-
-      {/* Alarm Notification */}
+      {/* Alarm notification overlay */}
       {activeAlarm && (
         <AlarmNotification
           message={activeAlarm.message}
@@ -542,13 +549,16 @@ export default function ChatPage() {
         />
       )}
 
-      {/* Audio Enable Prompt */}
-      {showAudioPrompt && (
+      {/* Audio enable prompt */}
+      {showAudioPrompt && !activeAlarm && (
         <AudioEnablePrompt
           onEnabled={() => setShowAudioPrompt(false)}
           onDismiss={() => setShowAudioPrompt(false)}
         />
       )}
+
+      {/* API Key modal */}
+      {showApiKeyModal && <ApiKeyModal onClose={() => setShowApiKeyModal(false)} />}
     </div>
   );
 }

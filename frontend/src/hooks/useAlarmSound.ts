@@ -43,35 +43,43 @@ export function useAlarmSound(): UseAlarmSoundReturn {
   }, []);
 
   const playBeepPattern = useCallback(() => {
-    const ctx = sharedAudioContext;
-    if (!ctx || ctx.state !== "running") return;
+    try {
+      const ctx = sharedAudioContext;
+      if (!ctx || ctx.state !== "running") return;
 
-    // Play two quick beeps
-    const beepTimes = [0, 0.25];
-    beepTimes.forEach((offset) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
+      // Play two quick beeps
+      const beepTimes = [0, 0.25];
+      beepTimes.forEach((offset) => {
+        try {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
 
-      osc.connect(gain);
-      gain.connect(ctx.destination);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
 
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(880, ctx.currentTime + offset);
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(880, ctx.currentTime + offset);
 
-      gain.gain.setValueAtTime(0, ctx.currentTime + offset);
-      gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + offset + 0.01);
-      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + offset + 0.18);
+          gain.gain.setValueAtTime(0, ctx.currentTime + offset);
+          gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + offset + 0.01);
+          gain.gain.linearRampToValueAtTime(0, ctx.currentTime + offset + 0.18);
 
-      osc.start(ctx.currentTime + offset);
-      osc.stop(ctx.currentTime + offset + 0.2);
+          osc.start(ctx.currentTime + offset);
+          osc.stop(ctx.currentTime + offset + 0.2);
 
-      activeNodesRef.current.push({ osc, gain });
+          activeNodesRef.current.push({ osc, gain });
 
-      osc.onended = () => {
-        activeNodesRef.current = activeNodesRef.current.filter((n) => n.osc !== osc);
-        try { gain.disconnect(); } catch {}
-      };
-    });
+          osc.onended = () => {
+            activeNodesRef.current = activeNodesRef.current.filter((n) => n.osc !== osc);
+            try { gain.disconnect(); } catch {}
+          };
+        } catch (e) {
+          console.warn("Beep oscillator error:", e);
+        }
+      });
+    } catch (e) {
+      console.warn("playBeepPattern error:", e);
+    }
   }, []);
 
   const stopAlarm = useCallback(() => {
@@ -89,33 +97,49 @@ export function useAlarmSound(): UseAlarmSoundReturn {
   }, []);
 
   const playAlarm = useCallback((): { needsUserGesture: boolean } => {
-    const ctx = sharedAudioContext;
-    if (!ctx || ctx.state !== "running") {
+    try {
+      const ctx = sharedAudioContext;
+
+      // If context is suspended, try to resume it first
+      if (ctx && ctx.state === "suspended") {
+        ctx.resume().catch((e) => console.warn("AudioContext resume failed:", e));
+        return { needsUserGesture: true };
+      }
+
+      if (!ctx || ctx.state !== "running") {
+        return { needsUserGesture: true };
+      }
+
+      // Stop any existing alarm first
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+
+      setIsPlaying(true);
+      playBeepPattern();
+
+      // Repeat every 1.5 seconds
+      intervalRef.current = setInterval(() => {
+        playBeepPattern();
+      }, 1500);
+
+      return { needsUserGesture: false };
+    } catch (e) {
+      console.warn("playAlarm error:", e);
       return { needsUserGesture: true };
     }
-
-    // Stop any existing alarm first
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-
-    setIsPlaying(true);
-    playBeepPattern();
-
-    // Repeat every 1.5 seconds
-    intervalRef.current = setInterval(() => {
-      playBeepPattern();
-    }, 1500);
-
-    return { needsUserGesture: false };
   }, [playBeepPattern]);
 
   const resumeAudioContext = useCallback(async () => {
-    const ctx = createOrResumeAudioContext();
-    if (ctx.state === "suspended") {
-      await ctx.resume();
+    try {
+      const ctx = createOrResumeAudioContext();
+      if (ctx.state === "suspended") {
+        await ctx.resume();
+      }
+      setAudioReady(ctx.state === "running");
+    } catch (e) {
+      console.warn("resumeAudioContext error:", e);
     }
-    setAudioReady(ctx.state === "running");
   }, []);
 
   // Cleanup on unmount

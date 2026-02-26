@@ -15,48 +15,148 @@ const viewModeConfig: Record<ViewMode, { width: string; icon: React.ReactNode; l
 };
 
 /**
- * Injects an error handler script into HTML content so that media errors
- * inside the iframe are caught gracefully instead of bubbling up as unhandled
- * MediaError / net::ERR_BLOCKED_BY_RESPONSE errors.
+ * Injects a comprehensive polyfill/override script into HTML content so that:
+ * - alert() / confirm() / prompt() dialogs are suppressed (they block the parent page)
+ * - new Audio() calls with file paths silently no-op instead of throwing errors
+ * - <audio>/<video> element errors are caught and replaced with a placeholder
+ * - AudioContext is auto-resumed on first user interaction
  */
 function sanitizeHtmlForPreview(html: string): string {
   if (!html) return html;
 
-  // Inject a small error-handler script right after <head> (or at the top)
-  const errorHandlerScript = `
+  const injectedScript = `
 <script>
 (function() {
-  // Gracefully handle media errors inside the preview iframe
+  // ── 1. Suppress all dialog calls that would block the parent page ──────────
+  window.alert   = function(msg) { console.warn('[preview] alert suppressed:', msg); };
+  window.confirm = function(msg) { console.warn('[preview] confirm suppressed:', msg); return true; };
+  window.prompt  = function(msg) { console.warn('[preview] prompt suppressed:', msg); return null; };
+
+  // ── 2. Replace file-based Audio with a silent Web Audio API synthesizer ────
+  //    This prevents "Error loading sound" errors when the AI generates code
+  //    that tries to load .mp3/.wav files that don't exist in the preview.
+  var _OrigAudio = window.Audio;
+  window.Audio = function(src) {
+    // If no src or src is a data URI / blob URL, use the real Audio element
+    if (!src || src.startsWith('data:') || src.startsWith('blob:')) {
+      return new _OrigAudio(src);
+    }
+    // Otherwise return a silent no-op stub so file-not-found errors are swallowed
+    var stub = {
+      src: src,
+      volume: 1,
+      loop: false,
+      paused: true,
+      currentTime: 0,
+      duration: 0,
+      muted: false,
+      autoplay: false,
+      controls: false,
+      _listeners: {},
+      play: function() {
+        stub.paused = false;
+        // Try to synthesize a short beep via Web Audio API as a best-effort fallback
+        try {
+          var AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) {
+            var ctx = new AudioCtx();
+            var osc = ctx.createOscillator();
+            var gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sine';
+            osc.frequency.value = 880;
+            gain.gain.setValueAtTime(0, ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.01);
+            gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.2);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.22);
+          }
+        } catch(e) {}
+        return Promise.resolve();
+      },
+      pause: function() { stub.paused = true; },
+      load: function() {},
+      addEventListener: function(type, fn) {
+        stub._listeners[type] = stub._listeners[type] || [];
+        stub._listeners[type].push(fn);
+      },
+      removeEventListener: function(type, fn) {
+        if (stub._listeners[type]) {
+          stub._listeners[type] = stub._listeners[type].filter(function(f) { return f !== fn; });
+        }
+      },
+      dispatchEvent: function() { return true; },
+      setAttribute: function() {},
+      getAttribute: function() { return null; },
+      cloneNode: function() { return stub; },
+    };
+    return stub;
+  };
+  // Copy static properties from the original Audio constructor
+  try {
+    Object.keys(_OrigAudio).forEach(function(k) {
+      try { window.Audio[k] = _OrigAudio[k]; } catch(e) {}
+    });
+  } catch(e) {}
+
+  // ── 3. Gracefully handle <audio>/<video> element load errors ──────────────
   document.addEventListener('error', function(e) {
     var el = e.target;
     if (el && (el.tagName === 'AUDIO' || el.tagName === 'VIDEO')) {
-      // Replace broken media with a styled placeholder
+      console.warn('[preview] Media load error suppressed for:', el.src || el.currentSrc);
+      // Replace broken media element with a styled placeholder
       var placeholder = document.createElement('div');
-      placeholder.style.cssText = 'display:flex;align-items:center;justify-content:center;background:#1a1a2e;border:1px solid #333;border-radius:8px;padding:16px;color:#888;font-family:sans-serif;font-size:13px;min-height:60px;';
-      placeholder.textContent = '⚠ Media unavailable in preview';
+      placeholder.style.cssText = 'display:flex;align-items:center;justify-content:center;background:#1a1a2e;border:1px solid #333;border-radius:8px;padding:12px 16px;color:#888;font-family:sans-serif;font-size:12px;min-height:48px;';
+      placeholder.textContent = '🔇 Audio unavailable in preview (Web Audio API is active)';
       if (el.parentNode) el.parentNode.replaceChild(placeholder, el);
     }
   }, true);
 
-  // Override AudioContext to prevent "not allowed to start" warnings
-  // by auto-resuming on any user interaction
-  var _AudioContext = window.AudioContext || window.webkitAudioContext;
-  if (_AudioContext) {
-    var _orig = _AudioContext.prototype.constructor;
-    document.addEventListener('click', function resumeCtx() {
-      document.querySelectorAll('audio, video').forEach(function(m) {
-        if (m.paused) { try { m.play().catch(function(){}); } catch(e){} }
-      });
-    }, { once: true });
+  // ── 4. Auto-resume AudioContext on first user interaction ─────────────────
+  function resumeAllContexts() {
+    if (window._previewAudioCtx && window._previewAudioCtx.state === 'suspended') {
+      window._previewAudioCtx.resume().catch(function(){});
+    }
   }
+  document.addEventListener('click', resumeAllContexts, { passive: true });
+  document.addEventListener('keydown', resumeAllContexts, { passive: true });
+  document.addEventListener('touchstart', resumeAllContexts, { passive: true });
+
+  // ── 5. Patch XMLHttpRequest and fetch to silently fail for audio file requests ──
+  //    Prevents net::ERR_FILE_NOT_FOUND errors from audio file fetches
+  var audioExtensions = /\.(mp3|wav|ogg|aac|flac|m4a|opus|weba)(\?.*)?$/i;
+  var _origFetch = window.fetch;
+  window.fetch = function(input, init) {
+    var url = typeof input === 'string' ? input : (input && input.url) || '';
+    if (audioExtensions.test(url)) {
+      console.warn('[preview] Audio file fetch suppressed:', url);
+      return Promise.reject(new Error('Audio file not available in preview'));
+    }
+    return _origFetch.apply(this, arguments);
+  };
+
+  var _origXHROpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function(method, url) {
+    if (typeof url === 'string' && audioExtensions.test(url)) {
+      console.warn('[preview] Audio XHR suppressed:', url);
+      this._suppressedAudio = true;
+    }
+    return _origXHROpen.apply(this, arguments);
+  };
+  var _origXHRSend = XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.send = function() {
+    if (this._suppressedAudio) return;
+    return _origXHRSend.apply(this, arguments);
+  };
 })();
 </script>`;
 
-  // Insert after <head> tag if present, otherwise prepend
+  // Insert right after <head> tag if present, otherwise prepend before everything
   if (/<head[\s>]/i.test(html)) {
-    return html.replace(/(<head[^>]*>)/i, `$1${errorHandlerScript}`);
+    return html.replace(/(<head[^>]*>)/i, `$1${injectedScript}`);
   }
-  return errorHandlerScript + html;
+  return injectedScript + html;
 }
 
 export default function LivePreview({ htmlContent, onViewCode }: LivePreviewProps) {

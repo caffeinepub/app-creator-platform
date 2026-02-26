@@ -13,12 +13,17 @@ export default function AlarmNotification({ message, onDismiss }: AlarmNotificat
 
   // Attempt to play alarm on mount
   useEffect(() => {
-    const result = playAlarm();
-    if (result.needsUserGesture) {
+    try {
+      const result = playAlarm();
+      if (result.needsUserGesture) {
+        setNeedsGesture(true);
+      }
+    } catch (e) {
+      console.warn("AlarmNotification: playAlarm failed silently", e);
       setNeedsGesture(true);
     }
     return () => {
-      stopAlarm();
+      try { stopAlarm(); } catch {}
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -26,23 +31,31 @@ export default function AlarmNotification({ message, onDismiss }: AlarmNotificat
   // Once audio becomes ready and we needed a gesture, retry playing
   useEffect(() => {
     if (audioReady && needsGesture) {
-      const result = playAlarm();
-      if (!result.needsUserGesture) {
-        setNeedsGesture(false);
+      try {
+        const result = playAlarm();
+        if (!result.needsUserGesture) {
+          setNeedsGesture(false);
+        }
+      } catch (e) {
+        console.warn("AlarmNotification: retry playAlarm failed silently", e);
       }
     }
   }, [audioReady, needsGesture, playAlarm]);
 
   const handleEnableAudio = async () => {
-    await resumeAudioContext();
-    const result = playAlarm();
-    if (!result.needsUserGesture) {
-      setNeedsGesture(false);
+    try {
+      await resumeAudioContext();
+      const result = playAlarm();
+      if (!result.needsUserGesture) {
+        setNeedsGesture(false);
+      }
+    } catch (e) {
+      console.warn("AlarmNotification: handleEnableAudio failed silently", e);
     }
   };
 
   const handleDismiss = () => {
-    stopAlarm();
+    try { stopAlarm(); } catch {}
     onDismiss();
   };
 
@@ -94,7 +107,7 @@ export default function AlarmNotification({ message, onDismiss }: AlarmNotificat
           <div className="flex items-center gap-2">
             {isPlaying ? (
               <button
-                onClick={() => stopAlarm()}
+                onClick={() => { try { stopAlarm(); } catch {} }}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-foreground text-sm font-medium transition-all border border-white/10"
               >
                 <VolumeX className="w-4 h-4" />

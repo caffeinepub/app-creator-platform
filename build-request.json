@@ -1,79 +1,102 @@
 {
   "kind": "build_request",
-  "title": "Fix alarm sound playback — configure audio support in Noventra",
-  "projectName": "Noventra.ai",
-  "priority": "high",
+  "title": "Add dedicated Sound Studio page as central hub for all sound features",
+  "projectName": "Noventra Sound Studio",
+  "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Implement a robust alarm sound system that uses the Web Audio API (AudioContext) as the primary sound engine to generate alarm tones programmatically, removing any dependency on external audio files or URLs that may fail to load. When an alarm triggers, synthesize a repeating beep/tone pattern using OscillatorNode so that sound playback works reliably without network requests or file permission issues.",
+      "text": "Create a dedicated Sound Studio page that serves as a central hub integrating all existing sound-related features: Sound Library browser, Accent Selector, Audio Tuning Panel, Gesture Pad Grid, and Waveform Visualizer. The page should be accessible via a top-level route (e.g., /studio) and linked from the app navigation.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-3",
+          "msg-5"
         ],
         "quotes": [
-          "cannot get sound from the alarm continuesly giving error",
-          "Noventra is not configured well for sounds and videos"
+          "The dedicated Sound Studio page didn't make it in this round; want me to add that as a central hub for all sound features?",
+          "yes add all the features"
         ]
       },
       "acceptanceCriteria": [
-        "When an alarm fires, an audible repeating tone plays immediately without throwing console errors.",
-        "Sound is generated via Web Audio API (AudioContext + OscillatorNode) — no external audio file URLs are required.",
-        "The alarm tone repeats on a timed interval until the user dismisses it.",
-        "A user-visible 'Stop Alarm' / dismiss button halts the audio and clears the interval.",
-        "No unhandled promise rejections or MediaError exceptions appear in the browser console during alarm playback."
+        "A /studio route exists and renders the Sound Studio page",
+        "The Sound Studio page is reachable from the main navigation",
+        "The page contains the Sound Library browser (SoundLibrary.tsx) in a browsable, filterable section",
+        "The page contains the Accent Selector (AccentSelector.tsx) with pitch/rate modifier controls",
+        "The page contains the Audio Tuning Panel (AudioTuningPanel.tsx) with sliders, presets, and reset",
+        "The page contains the Gesture Pad Grid (GesturePadGrid.tsx) with edit mode and keyboard shortcut support",
+        "The page contains the Waveform Visualizer (WaveformVisualizer.tsx) reflecting real-time audio output",
+        "All five feature sections are visible on the same page, organized in a coherent layout"
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Add a user-gesture-safe audio initialisation guard. The Web Audio API requires a user gesture before AudioContext can run. On the first user interaction after page load (click, keydown, or pointer event), resume or create the AudioContext so it is in the 'running' state before any alarm fires. Display an unobtrusive banner or toast prompting the user to interact with the page if the AudioContext is suspended when an alarm is about to trigger.",
+      "text": "Integrate audio recording capabilities into the Sound Studio page using the existing useAudioRecorder hook, displaying recording controls (start, stop, export) and a live waveform visualization during recording.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-5"
         ],
         "quotes": [
-          "continuesly giving error",
-          "not configured well for sounds"
+          "yes add all the features"
         ]
       },
       "acceptanceCriteria": [
-        "AudioContext is created and resumed on the first user interaction on the page.",
-        "If AudioContext is still suspended when an alarm fires, a toast message prompts 'Click anywhere to enable alarm sound' and the alarm visual indicator still activates.",
-        "After the user interacts, subsequent alarms play sound without any additional prompts.",
-        "No 'AudioContext was not allowed to start' browser warning appears after a user has interacted with the page."
+        "Recording start/stop controls are present on the Sound Studio page",
+        "Elapsed recording time is displayed while recording",
+        "The waveform visualizer animates from the microphone AnalyserNode during recording",
+        "Recorded audio can be exported/downloaded as a WAV file using audioExport utilities"
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Audit and fix any video/media elements in the frontend that may be misconfigured. Ensure all HTML5 video or audio elements include the correct MIME types and use local or blob sources where possible. Remove or replace any broken external media URLs. If the LivePreview sandbox iframe is involved in media playback errors, update its sandbox attribute to include 'allow-scripts allow-same-origin' and ensure media autoplay policies are respected.",
+      "text": "Integrate the preset management system into the Sound Studio page using the existing usePresetStorage hook, allowing users to save, load, rename, and delete named studio presets that capture current tuning parameters, pad configuration, and voice/accent settings.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-5"
         ],
         "quotes": [
-          "Noventra is not configured well for sounds and videos"
+          "yes add all the features"
         ]
       },
       "acceptanceCriteria": [
-        "No MediaError or net::ERR_BLOCKED_BY_RESPONSE errors appear in the console related to audio or video elements.",
-        "The LivePreview iframe sandbox attribute permits the media functionality it needs without exposing security risks.",
-        "Any previously broken audio/video elements either display a graceful fallback or play correctly."
+        "A preset management panel is visible on the Sound Studio page",
+        "Users can save the current tuning + pad + accent state as a named preset",
+        "Users can load an existing preset and have all controls update accordingly",
+        "Users can rename and delete presets",
+        "Presets persist across page reloads via localStorage"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Ensure the AudioContext is properly initialized and shared across all sound feature components on the Sound Studio page using the existing useAudioContextInit and useAudioEngine hooks, with the AudioEnablePrompt shown if the context is not yet running.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-5"
+        ],
+        "quotes": [
+          "yes add all the features"
+        ]
+      },
+      "acceptanceCriteria": [
+        "All audio playback on the Sound Studio page uses the same shared AudioContext",
+        "AudioEnablePrompt is shown if the AudioContext is suspended",
+        "Clicking anywhere on the page resumes the AudioContext and dismisses the prompt",
+        "Sound Library previews, gesture pad triggers, and tuning panel all use the shared audio engine"
       ]
     }
   ],
   "constraints": [
-    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
-    "All audio must be generated client-side via Web Audio API — do not add external CDN audio file dependencies.",
-    "Backend (main.mo) should not be changed unless alarm data persistence is explicitly requested."
+    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui",
+    "Compose existing components (SoundLibrary, AccentSelector, AudioTuningPanel, GesturePadGrid, WaveformVisualizer, AudioEnablePrompt) rather than rewriting them",
+    "Reuse existing hooks (useAudioEngine, useAudioRecorder, usePresetStorage, useAudioContextInit) without modifying them"
   ],
   "nonGoals": [
-    "Adding new alarm creation UI — the existing alarm creation flow already works.",
-    "Implementing video streaming or media upload features.",
-    "Changing the overall visual theme or color system.",
-    "Backend changes for alarm storage."
+    "Backend changes — all sound features are client-side only",
+    "Creating new sound synthesis algorithms beyond what already exists in soundLibrary.ts and useAudioEngine.ts",
+    "Modifying existing chat or session pages"
   ],
   "imageRequirements": {
     "required": [],

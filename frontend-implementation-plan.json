@@ -1,96 +1,88 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix alarm sound playback — configure audio support in Noventra",
+  "title": "Add dedicated Sound Studio page as central hub for all sound features",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Implement a robust alarm sound system using Web Audio API to generate tones programmatically, eliminating dependency on external audio files",
+      "summary": "Create a dedicated Sound Studio page that serves as a central hub integrating all existing sound-related features: Sound Library browser, Accent Selector, Audio Tuning Panel, Gesture Pad Grid, and Waveform Visualizer. The page should be accessible via a top-level route (e.g., /studio) and linked from the app navigation.",
       "acceptanceCriteria": [
-        "When an alarm fires, an audible repeating tone plays immediately without throwing console errors.",
-        "Sound is generated via Web Audio API (AudioContext + OscillatorNode) — no external audio file URLs are required.",
-        "The alarm tone repeats on a timed interval until the user dismisses it.",
-        "A user-visible 'Stop Alarm' / dismiss button halts the audio and clears the interval.",
-        "No unhandled promise rejections or MediaError exceptions appear in the browser console during alarm playback."
+        "A /studio route exists and renders the Sound Studio page",
+        "The Sound Studio page is reachable from the main navigation",
+        "The page contains the Sound Library browser (SoundLibrary.tsx) in a browsable, filterable section",
+        "The page contains the Accent Selector (AccentSelector.tsx) with pitch/rate modifier controls",
+        "The page contains the Audio Tuning Panel (AudioTuningPanel.tsx) with sliders, presets, and reset",
+        "The page contains the Gesture Pad Grid (GesturePadGrid.tsx) with edit mode and keyboard shortcut support",
+        "The page contains the Waveform Visualizer (WaveformVisualizer.tsx) reflecting real-time audio output",
+        "All five feature sections are visible on the same page, organized in a coherent layout"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useAlarmSound.ts",
+          "path": "frontend/src/pages/SoundStudioPage.tsx",
           "operation": "create",
-          "description": "Create a custom React hook that manages Web Audio API alarm sound generation. The hook initializes an AudioContext, provides a playAlarm() function that synthesizes a repeating beep pattern using OscillatorNode (e.g., 800Hz tone, 200ms on, 200ms off), tracks the playing state, and exposes a stopAlarm() function to halt playback and clear intervals. Ensure cleanup on unmount."
+          "description": "Create the Sound Studio page that integrates SoundLibrary, AccentSelector, AudioTuningPanel, GesturePadGrid, and WaveformVisualizer components. Organize these five sections in a coherent layout using a grid or flexbox structure with clear visual separation between feature sections. Each section should have a heading and appropriate styling. Use the shared AudioContext from useAudioContextInit and useAudioEngine hooks. Pass the audio engine's AnalyserNode to the WaveformVisualizer for real-time visualization. Wire the AudioTuningPanel parameters to the audio engine. Connect the GesturePadGrid to play sounds through the audio engine. Allow the AccentSelector to preview voices using the useSpeechSynthesis hook. Enable the SoundLibrary to preview sounds through the audio engine via a callback."
         },
         {
-          "path": "frontend/src/components/AlarmNotification.tsx",
-          "operation": "create",
-          "description": "Create an alarm notification component that displays when an alarm triggers. Show a prominent alert with the alarm message, a pulsing visual indicator, and a 'Stop Alarm' button. Use the useAlarmSound hook to trigger audio playback when mounted and stop it when dismissed. Include error boundary handling for any audio API failures."
-        },
-        {
-          "path": "frontend/src/pages/ChatPage.tsx",
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Integrate the AlarmNotification component into the ChatPage. When an alarm condition is detected (e.g., session timeout, important event), render the AlarmNotification component. Ensure the alarm visual indicator appears even if audio fails, maintaining user awareness of the alarm state."
+          "description": "Add a new route for /studio that renders the SoundStudioPage component. Import the SoundStudioPage and register it in the TanStack Router configuration alongside existing routes for home, sessions, new-session, and chat pages. Ensure the route is accessible to authenticated users."
+        },
+        {
+          "path": "frontend/src/components/AppLayout.tsx",
+          "operation": "create",
+          "description": "Create or modify the AppLayout component (referenced in App.tsx file summary) to include a navigation link to the Sound Studio page. Add a navigation item with text 'Sound Studio' that links to /studio route. Ensure the navigation is visible on all pages and styled consistently with existing navigation patterns. The navigation should be accessible after authentication and profile setup."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Add user-gesture-safe audio initialization guard with AudioContext state management and user interaction prompts",
+      "summary": "Integrate audio recording capabilities into the Sound Studio page using the existing useAudioRecorder hook, displaying recording controls (start, stop, export) and a live waveform visualization during recording.",
       "acceptanceCriteria": [
-        "AudioContext is created and resumed on the first user interaction on the page.",
-        "If AudioContext is still suspended when an alarm fires, a toast message prompts 'Click anywhere to enable alarm sound' and the alarm visual indicator still activates.",
-        "After the user interacts, subsequent alarms play sound without any additional prompts.",
-        "No 'AudioContext was not allowed to start' browser warning appears after a user has interacted with the page."
+        "Recording start/stop controls are present on the Sound Studio page",
+        "Elapsed recording time is displayed while recording",
+        "The waveform visualizer animates from the microphone AnalyserNode during recording",
+        "Recorded audio can be exported/downloaded as a WAV file using audioExport utilities"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useAlarmSound.ts",
+          "path": "frontend/src/pages/SoundStudioPage.tsx",
           "operation": "modify",
-          "description": "Enhance the useAlarmSound hook to check AudioContext state before playing sound. If the context is suspended when playAlarm() is called, return a status indicating user interaction is required. Add a resumeAudioContext() function that resumes the context and can be called after user gesture. Store the AudioContext state and expose it to consumers."
-        },
-        {
-          "path": "frontend/src/hooks/useAudioContextInit.ts",
-          "operation": "create",
-          "description": "Create a global audio initialization hook that sets up event listeners for the first user interaction (click, keydown, pointerdown) on the document. On first interaction, create or resume the shared AudioContext and remove the listeners. Expose the AudioContext instance and a boolean indicating whether initialization is complete."
-        },
-        {
-          "path": "frontend/src/components/AudioEnablePrompt.tsx",
-          "operation": "create",
-          "description": "Create a toast-style prompt component that appears when an alarm tries to play but AudioContext is suspended. Display the message 'Click anywhere to enable alarm sound' with a dismiss action. Auto-dismiss the toast after the user clicks anywhere on the page and the AudioContext resumes."
-        },
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Integrate the useAudioContextInit hook at the App level to ensure global audio initialization on first user interaction. This ensures the AudioContext is ready before any alarm fires anywhere in the application."
-        },
-        {
-          "path": "frontend/src/components/AlarmNotification.tsx",
-          "operation": "modify",
-          "description": "Update AlarmNotification to conditionally render the AudioEnablePrompt component when the alarm sound cannot play due to suspended AudioContext. Ensure the visual alarm indicator still displays prominently even when audio is disabled."
+          "description": "Add a recording section to the Sound Studio page using the useAudioRecorder hook. Display start/stop recording buttons with appropriate disabled states based on recording status and permission state. Show the elapsed recording time in MM:SS format while recording is active. When recording is active, switch the WaveformVisualizer to use the recorder's AnalyserNode instead of the audio engine's node. Add an export button that becomes enabled after a recording is stopped, calling the recorder's export function with audioExport utilities to download the recorded audio as a WAV file. Include a clear/reset button to discard the current recording. Handle microphone permission requests and show appropriate error messages if permission is denied."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Audit and fix video/media element configurations, ensuring correct MIME types, local sources, and proper LivePreview sandbox attributes",
+      "summary": "Integrate the preset management system into the Sound Studio page using the existing usePresetStorage hook, allowing users to save, load, rename, and delete named studio presets that capture current tuning parameters, pad configuration, and voice/accent settings.",
       "acceptanceCriteria": [
-        "No MediaError or net::ERR_BLOCKED_BY_RESPONSE errors appear in the console related to audio or video elements.",
-        "The LivePreview iframe sandbox attribute permits the media functionality it needs without exposing security risks.",
-        "Any previously broken audio/video elements either display a graceful fallback or play correctly."
+        "A preset management panel is visible on the Sound Studio page",
+        "Users can save the current tuning + pad + accent state as a named preset",
+        "Users can load an existing preset and have all controls update accordingly",
+        "Users can rename and delete presets",
+        "Presets persist across page reloads via localStorage"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/LivePreview.tsx",
+          "path": "frontend/src/pages/SoundStudioPage.tsx",
           "operation": "modify",
-          "description": "Update the LivePreview component's iframe sandbox attribute to include 'allow-scripts allow-same-origin' to support media playback while maintaining security. Ensure the sandbox configuration respects browser autoplay policies by also including 'allow-popups' if needed for media interactions."
-        },
+          "description": "Add a preset management section to the Sound Studio page using the usePresetStorage hook. Maintain local state for current tuning parameters (from AudioTuningPanel), pad configuration (from GesturePadGrid), and voice/accent settings (from AccentSelector). Display a list of saved presets with load, rename, and delete buttons for each. Provide a save preset button that opens an input dialog to name the preset, then captures the current tuning, pads, and voice state and saves it via the hook. Implement a load preset function that retrieves the preset data and updates all three sections: apply tuning params to AudioTuningPanel, restore pad configuration to GesturePadGrid, and restore voice/accent to AccentSelector. Add rename functionality that opens an input dialog pre-filled with the current name. Add delete functionality with a confirmation prompt. Show a message when no presets exist yet."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Ensure the AudioContext is properly initialized and shared across all sound feature components on the Sound Studio page using the existing useAudioContextInit and useAudioEngine hooks, with the AudioEnablePrompt shown if the context is not yet running.",
+      "acceptanceCriteria": [
+        "All audio playback on the Sound Studio page uses the same shared AudioContext",
+        "AudioEnablePrompt is shown if the AudioContext is suspended",
+        "Clicking anywhere on the page resumes the AudioContext and dismisses the prompt",
+        "Sound Library previews, gesture pad triggers, and tuning panel all use the shared audio engine"
+      ],
+      "file_operations": [
         {
-          "path": "frontend/src/pages/ChatPage.tsx",
+          "path": "frontend/src/pages/SoundStudioPage.tsx",
           "operation": "modify",
-          "description": "Audit any inline HTML rendering or dynamic content injection that might include audio/video elements. Ensure all media elements specify correct MIME types in their source tags. Replace any external CDN media URLs with local blob sources or remove them. Add error handlers to gracefully display fallback content when media fails to load."
-        },
-        {
-          "path": "frontend/src/utils/mediaValidator.ts",
-          "operation": "create",
-          "description": "Create a utility module that validates and sanitizes HTML content containing media elements. Provide functions to check MIME types, convert external URLs to safe blob sources where appropriate, and inject proper error handlers. Export a sanitizeMediaHTML function that can be called before rendering user-generated or AI-generated HTML content."
+          "description": "At the top of the SoundStudioPage component, call the useAudioContextInit hook to get the isAudioReady flag and call the useAudioEngine hook to get the shared audio engine instance. Conditionally render the AudioEnablePrompt component when isAudioReady is false, positioning it at the bottom of the page. Pass the audio engine instance to all sound-playing components (GesturePadGrid for pad triggers, SoundLibrary for sound previews via callback). Ensure the AudioTuningPanel's parameter changes update the audio engine configuration. Connect the audio engine's AnalyserNode to the WaveformVisualizer for real-time visualization during playback. All audio operations should use the same shared AudioContext instance from the audio engine."
         }
       ]
     }

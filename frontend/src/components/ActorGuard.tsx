@@ -6,41 +6,58 @@ interface ActorGuardProps {
   children: React.ReactNode;
 }
 
-export default function ActorGuard({ children }: ActorGuardProps) {
-  const { actor, isFetching } = useActor();
-  const [timedOut, setTimedOut] = useState(false);
-  const [retryKey, setRetryKey] = useState(0);
-  const [dots, setDots] = useState(0);
+const STATUS_MESSAGES = [
+  "Connecting…",
+  "Authenticating…",
+  "Almost ready…",
+  "Hang tight…",
+];
 
+export default function ActorGuard({ children }: ActorGuardProps) {
+  const { actor } = useActor();
+  const [timedOut, setTimedOut] = useState(false);
+  const [dots, setDots] = useState(0);
+  const [statusIndex, setStatusIndex] = useState(0);
+
+  const isReady = !!actor;
+
+  // Timeout: show retry after 4 seconds if actor not available
   useEffect(() => {
-    if (!isFetching && actor) return;
+    if (isReady) return;
 
     const timeout = setTimeout(() => {
-      if (isFetching || !actor) {
-        setTimedOut(true);
-      }
-    }, 10000);
+      setTimedOut(true);
+    }, 4000);
 
     return () => clearTimeout(timeout);
-  }, [isFetching, actor, retryKey]);
+  }, [isReady]);
 
+  // Animated dots
   useEffect(() => {
-    if (!isFetching) return;
+    if (isReady) return;
     const interval = setInterval(() => {
       setDots((d) => (d + 1) % 4);
     }, 400);
     return () => clearInterval(interval);
-  }, [isFetching]);
+  }, [isReady]);
 
-  const handleRetry = () => {
-    setTimedOut(false);
-    setRetryKey((k) => k + 1);
-    window.location.reload();
-  };
+  // Cycle status messages every 2 seconds
+  useEffect(() => {
+    if (isReady) return;
+    const interval = setInterval(() => {
+      setStatusIndex((i) => (i + 1) % STATUS_MESSAGES.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [isReady]);
 
-  if (!isFetching && actor) {
+  // Stale-while-revalidate: if actor is already available, render children immediately
+  if (isReady) {
     return <>{children}</>;
   }
+
+  const handleRetry = () => {
+    window.location.reload();
+  };
 
   if (timedOut) {
     return (
@@ -55,7 +72,7 @@ export default function ActorGuard({ children }: ActorGuardProps) {
           </div>
           <h2 className="text-xl font-semibold text-foreground mb-2">Connection Timeout</h2>
           <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
-            Could not connect to the backend. This may be a temporary issue.
+            Could not connect to the backend. This may be a temporary issue — please try again.
           </p>
           <button
             onClick={handleRetry}
@@ -91,7 +108,12 @@ export default function ActorGuard({ children }: ActorGuardProps) {
             />
           ))}
         </div>
-        <p className="mt-4 text-sm text-muted-foreground">Initializing{".".repeat(dots)}</p>
+        <p
+          key={statusIndex}
+          className="mt-4 text-sm text-muted-foreground transition-opacity duration-500 animate-fade-in"
+        >
+          {STATUS_MESSAGES[statusIndex]}
+        </p>
       </div>
     </div>
   );

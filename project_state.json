@@ -2,41 +2,51 @@
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
   "summary": "New project",
-  "architectural_notes": [
-    "Noventra platform may require specific configuration for audio/video playback support"
-  ],
-  "known_issues": [
-    "Alarm sound playback fails continuously with errors — likely due to missing or misconfigured audio/video support in Noventra"
-  ],
-  "isFixRequest": true,
-  "existing_features": [
+  "architectural_notes": [],
+  "known_issues": [],
+  "isFixRequest": false,
+  "existing_features": [],
+  "new_feature_requests": [
     {
-      "id": "feature-implement-a-robust-alarm-sound-system-that-uses-the-web-audio-api-audiocontext-as-the-primary-sound-engine-to-generate-alarm-tones-programmatically-removing-any-dependency-on-external-audio-files-or-urls-that-may-fail-to-load-when-an-alarm-triggers-synthesize-a-repeating-beep-tone-pattern-using-oscillatornode-so-that-sound-playback-works-reliably-without-network-requests-or-file-permission-issues",
-      "title": "Implement a robust alarm sound system that uses the Web Audio API (AudioContext) as the primary sound engine to generate alarm tones programmatically, removing any dependency on external audio files or URLs that may fail to load. When an alarm triggers, synthesize a repeating beep/tone pattern using OscillatorNode so that sound playback works reliably without network requests or file permission issues.",
+      "id": "AR-1",
+      "summary": "Add dedicated Sound Studio page as central hub for all sound features",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Create a dedicated Sound Studio page that serves as a central hub integrating all existing sound-related features: Sound Library browser, Accent Selector, Audio Tuning Panel, Gesture Pad Grid, and Waveform Visualizer. The page should be accessible via a top-level route (e.g., /studio) and linked from the app navigation.",
       "reqIds": [
         "REQ-1"
       ],
-      "version": 1
+      "status": "pending"
     },
     {
-      "id": "feature-add-a-user-gesture-safe-audio-initialisation-guard-the-web-audio-api-requires-a-user-gesture-before-audiocontext-can-run-on-the-first-user-interaction-after-page-load-click-keydown-or-pointer-event-resume-or-create-the-audiocontext-so-it-is-in-the-running-state-before-any-alarm-fires-display-an-unobtrusive-banner-or-toast-prompting-the-user-to-interact-with-the-page-if-the-audiocontext-is-suspended-when-an-alarm-is-about-to-trigger",
-      "title": "Add a user-gesture-safe audio initialisation guard. The Web Audio API requires a user gesture before AudioContext can run. On the first user interaction after page load (click, keydown, or pointer event), resume or create the AudioContext so it is in the 'running' state before any alarm fires. Display an unobtrusive banner or toast prompting the user to interact with the page if the AudioContext is suspended when an alarm is about to trigger.",
+      "id": "AR-3",
+      "summary": "Integrate audio recording capabilities into the Sound Studio page using the existing useAudioRecorder hook, displaying recording controls (start, stop, export) and a live waveform visualization during recording.",
       "reqIds": [
         "REQ-2"
       ],
-      "version": 1
+      "status": "pending"
     },
     {
-      "id": "feature-audit-and-fix-any-video-media-elements-in-the-frontend-that-may-be-misconfigured-ensure-all-html5-video-or-audio-elements-include-the-correct-mime-types-and-use-local-or-blob-sources-where-possible-remove-or-replace-any-broken-external-media-urls-if-the-livepreview-sandbox-iframe-is-involved-in-media-playback-errors-update-its-sandbox-attribute-to-include-allow-scripts-allow-same-origin-and-ensure-media-autoplay-policies-are-respected",
-      "title": "Audit and fix any video/media elements in the frontend that may be misconfigured. Ensure all HTML5 video or audio elements include the correct MIME types and use local or blob sources where possible. Remove or replace any broken external media URLs. If the LivePreview sandbox iframe is involved in media playback errors, update its sandbox attribute to include 'allow-scripts allow-same-origin' and ensure media autoplay policies are respected.",
+      "id": "AR-4",
+      "summary": "Integrate the preset management system into the Sound Studio page using the existing usePresetStorage hook, allowing users to save, load, rename, and delete named studio presets that capture current tuning parameters, pad configuration, and voice/accent settings.",
       "reqIds": [
         "REQ-3"
       ],
-      "version": 1
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Ensure the AudioContext is properly initialized and shared across all sound feature components on the Sound Studio page using the existing useAudioContextInit and useAudioEngine hooks, with the AudioEnablePrompt shown if the context is not yet running.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "status": "pending"
     }
   ],
-  "new_feature_requests": [],
-  "projectName": "Noventra.ai",
+  "projectName": "Noventra Sound Studio",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

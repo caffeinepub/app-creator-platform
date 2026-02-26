@@ -1,77 +1,59 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-26T14:48:21.277Z",
+  "generatedAt": "2026-02-26T19:21:36.012Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 3,
-    "implemented": 3,
+    "total": 4,
+    "implemented": 0,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Implement a robust alarm sound system that uses the Web Audio API (AudioContext) as the primary sound engine to generate alarm tones programmatically, removing any dependency on external audio files or URLs that may fail to load. When an alarm triggers, synthesize a repeating beep/tone pattern using OscillatorNode so that sound playback works reliably without network requests or file permission issues.",
-        "status": "implemented",
+        "summary": "Create a dedicated Sound Studio page that serves as a central hub integrating all existing sound-related features: Sound Library browser, Accent Selector, Audio Tuning Panel, Gesture Pad Grid, and Waveform Visualizer. The page should be accessible via a top-level route (e.g., /studio) and linked from the app navigation.",
+        "status": "missing",
         "plannedFiles": [
-          "frontend/src/hooks/useAlarmSound.ts",
-          "frontend/src/components/AlarmNotification.tsx",
-          "frontend/src/pages/ChatPage.tsx"
+          "frontend/src/pages/SoundStudioPage.tsx",
+          "frontend/src/App.tsx",
+          "frontend/src/components/AppLayout.tsx"
         ],
-        "matchedFiles": [
-          "frontend/src/hooks/useAlarmSound.ts",
-          "frontend/src/components/AlarmNotification.tsx",
-          "frontend/src/pages/ChatPage.tsx"
-        ]
+        "matchedFiles": []
       },
       {
         "id": "REQ-2",
-        "summary": "Add a user-gesture-safe audio initialisation guard. The Web Audio API requires a user gesture before AudioContext can run. On the first user interaction after page load (click, keydown, or pointer event), resume or create the AudioContext so it is in the 'running' state before any alarm fires. Display an unobtrusive banner or toast prompting the user to interact with the page if the AudioContext is suspended when an alarm is about to trigger.",
-        "status": "implemented",
+        "summary": "Integrate audio recording capabilities into the Sound Studio page using the existing useAudioRecorder hook, displaying recording controls (start, stop, export) and a live waveform visualization during recording.",
+        "status": "missing",
         "plannedFiles": [
-          "frontend/src/hooks/useAlarmSound.ts",
-          "frontend/src/hooks/useAudioContextInit.ts",
-          "frontend/src/components/AudioEnablePrompt.tsx",
-          "frontend/src/App.tsx",
-          "frontend/src/components/AlarmNotification.tsx"
+          "frontend/src/pages/SoundStudioPage.tsx"
         ],
-        "matchedFiles": [
-          "frontend/src/hooks/useAlarmSound.ts",
-          "frontend/src/hooks/useAudioContextInit.ts",
-          "frontend/src/components/AudioEnablePrompt.tsx",
-          "frontend/src/App.tsx",
-          "frontend/src/components/AlarmNotification.tsx"
-        ]
+        "matchedFiles": []
       },
       {
         "id": "REQ-3",
-        "summary": "Audit and fix any video/media elements in the frontend that may be misconfigured. Ensure all HTML5 video or audio elements include the correct MIME types and use local or blob sources where possible. Remove or replace any broken external media URLs. If the LivePreview sandbox iframe is involved in media playback errors, update its sandbox attribute to include 'allow-scripts allow-same-origin' and ensure media autoplay policies are respected.",
-        "status": "implemented",
+        "summary": "Integrate the preset management system into the Sound Studio page using the existing usePresetStorage hook, allowing users to save, load, rename, and delete named studio presets that capture current tuning parameters, pad configuration, and voice/accent settings.",
+        "status": "missing",
         "plannedFiles": [
-          "frontend/src/components/LivePreview.tsx",
-          "frontend/src/pages/ChatPage.tsx",
-          "frontend/src/utils/mediaValidator.ts"
+          "frontend/src/pages/SoundStudioPage.tsx"
         ],
-        "matchedFiles": [
-          "frontend/src/components/LivePreview.tsx",
-          "frontend/src/pages/ChatPage.tsx"
-        ]
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Ensure the AudioContext is properly initialized and shared across all sound feature components on the Sound Studio page using the existing useAudioContextInit and useAudioEngine hooks, with the AudioEnablePrompt shown if the context is not yet running.",
+        "status": "missing",
+        "plannedFiles": [
+          "frontend/src/pages/SoundStudioPage.tsx"
+        ],
+        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
     "build-request.json",
     "feature_evidence.json",
-    "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/App.tsx",
-    "frontend/src/components/AlarmNotification.tsx",
-    "frontend/src/components/AudioEnablePrompt.tsx",
-    "frontend/src/components/LivePreview.tsx",
-    "frontend/src/hooks/useAlarmSound.ts",
-    "frontend/src/hooks/useAudioContextInit.ts",
-    "frontend/src/pages/ChatPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",
