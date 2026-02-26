@@ -1,88 +1,66 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Add dedicated Sound Studio page as central hub for all sound features",
+  "title": "Fix Noventra App Startup and Launch Issues",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Create a dedicated Sound Studio page that serves as a central hub integrating all existing sound-related features: Sound Library browser, Accent Selector, Audio Tuning Panel, Gesture Pad Grid, and Waveform Visualizer. The page should be accessible via a top-level route (e.g., /studio) and linked from the app navigation.",
+      "summary": "Diagnose and fix app startup/launch issues in ActorGuard, useActor.ts, and InternetIdentityProvider bootstrap sequence to ensure successful mounting without hanging or permanent loading state",
       "acceptanceCriteria": [
-        "A /studio route exists and renders the Sound Studio page",
-        "The Sound Studio page is reachable from the main navigation",
-        "The page contains the Sound Library browser (SoundLibrary.tsx) in a browsable, filterable section",
-        "The page contains the Accent Selector (AccentSelector.tsx) with pitch/rate modifier controls",
-        "The page contains the Audio Tuning Panel (AudioTuningPanel.tsx) with sliders, presets, and reset",
-        "The page contains the Gesture Pad Grid (GesturePadGrid.tsx) with edit mode and keyboard shortcut support",
-        "The page contains the Waveform Visualizer (WaveformVisualizer.tsx) reflecting real-time audio output",
-        "All five feature sections are visible on the same page, organized in a coherent layout"
+        "The app loads and renders without hanging on the ActorGuard loading screen",
+        "The ICP actor initializes successfully on page load (both authenticated and anonymous)",
+        "No console errors related to actor initialization or identity provider on startup",
+        "The home/landing page is reachable within a reasonable time after page load",
+        "Retry mechanism in ActorGuard works correctly if actor initialization is slow"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/SoundStudioPage.tsx",
-          "operation": "create",
-          "description": "Create the Sound Studio page that integrates SoundLibrary, AccentSelector, AudioTuningPanel, GesturePadGrid, and WaveformVisualizer components. Organize these five sections in a coherent layout using a grid or flexbox structure with clear visual separation between feature sections. Each section should have a heading and appropriate styling. Use the shared AudioContext from useAudioContextInit and useAudioEngine hooks. Pass the audio engine's AnalyserNode to the WaveformVisualizer for real-time visualization. Wire the AudioTuningPanel parameters to the audio engine. Connect the GesturePadGrid to play sounds through the audio engine. Allow the AccentSelector to preview voices using the useSpeechSynthesis hook. Enable the SoundLibrary to preview sounds through the audio engine via a callback."
+          "path": "frontend/src/components/ActorGuard.tsx",
+          "operation": "modify",
+          "description": "Review and fix the ActorGuard loading logic to prevent infinite hanging. Ensure the retry mechanism triggers correctly after the 4-second timeout. Add fallback rendering logic to handle edge cases where the actor never initializes. Improve error boundary handling to catch actor initialization failures and display actionable error messages instead of an indefinite loading state."
         },
         {
           "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Add a new route for /studio that renders the SoundStudioPage component. Import the SoundStudioPage and register it in the TanStack Router configuration alongside existing routes for home, sessions, new-session, and chat pages. Ensure the route is accessible to authenticated users."
-        },
-        {
-          "path": "frontend/src/components/AppLayout.tsx",
-          "operation": "create",
-          "description": "Create or modify the AppLayout component (referenced in App.tsx file summary) to include a navigation link to the Sound Studio page. Add a navigation item with text 'Sound Studio' that links to /studio route. Ensure the navigation is visible on all pages and styled consistently with existing navigation patterns. The navigation should be accessible after authentication and profile setup."
+          "description": "Audit the ActorGuard placement and ensure it wraps only the necessary router components. Verify that QueryClient and ThemeProvider initialization does not block ActorGuard from rendering. Add error boundary wrapping around ActorGuard to catch and display initialization errors. Ensure AudioContext initialization does not interfere with actor bootstrap."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Integrate audio recording capabilities into the Sound Studio page using the existing useAudioRecorder hook, displaying recording controls (start, stop, export) and a live waveform visualization during recording.",
+      "summary": "Audit and fix TanStack Router route setup to ensure all four routes resolve correctly on initial navigation and hard refresh, confirming the ProfileSetup guard does not block rendering in error states",
       "acceptanceCriteria": [
-        "Recording start/stop controls are present on the Sound Studio page",
-        "Elapsed recording time is displayed while recording",
-        "The waveform visualizer animates from the microphone AnalyserNode during recording",
-        "Recorded audio can be exported/downloaded as a WAV file using audioExport utilities"
+        "All four routes are accessible without 404 or blank screen on direct navigation",
+        "Hard-refreshing any route loads the correct page",
+        "The ProfileSetup guard only triggers when a profile is genuinely missing, not on every load",
+        "No routing errors appear in the console on startup"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/SoundStudioPage.tsx",
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Add a recording section to the Sound Studio page using the useAudioRecorder hook. Display start/stop recording buttons with appropriate disabled states based on recording status and permission state. Show the elapsed recording time in MM:SS format while recording is active. When recording is active, switch the WaveformVisualizer to use the recorder's AnalyserNode instead of the audio engine's node. Add an export button that becomes enabled after a recording is stopped, calling the recorder's export function with audioExport utilities to download the recorded audio as a WAV file. Include a clear/reset button to discard the current recording. Handle microphone permission requests and show appropriate error messages if permission is denied."
+          "description": "Audit the TanStack Router configuration for all four routes (home, sessions, new session, chat). Verify route definitions, paths, and component mappings are correct. Review the AppLayout ProfileSetup guard logic to ensure it only triggers when a profile is genuinely missing (userProfile === null and isFetched === true). Add guards to prevent the ProfileSetup modal from flashing on every load by checking both actor availability and profile fetch completion. Ensure the router does not block on authentication state changes. Verify hard-refresh behavior by testing route resolution with empty query cache."
+        },
+        {
+          "path": "frontend/src/components/ProfileSetup.tsx",
+          "operation": "modify",
+          "description": "Review the ProfileSetup component's conditional rendering logic to prevent premature display before the user profile query completes. Ensure the component only shows when isAuthenticated is true, actor is available, profile is null, and isFetched is true. Add console logging for debugging profile fetch state during startup."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Integrate the preset management system into the Sound Studio page using the existing usePresetStorage hook, allowing users to save, load, rename, and delete named studio presets that capture current tuning parameters, pad configuration, and voice/accent settings.",
+      "summary": "Ensure the backend actor is reachable on app startup by verifying canister ID configuration and that anonymous/authenticated calls do not fail silently during initialization",
       "acceptanceCriteria": [
-        "A preset management panel is visible on the Sound Studio page",
-        "Users can save the current tuning + pad + accent state as a named preset",
-        "Users can load an existing preset and have all controls update accordingly",
-        "Users can rename and delete presets",
-        "Presets persist across page reloads via localStorage"
+        "The frontend successfully connects to the backend canister on startup",
+        "Canister ID is correctly resolved in both local and production environments",
+        "Query calls made during initialization return valid responses or clear error messages"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/SoundStudioPage.tsx",
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Add a preset management section to the Sound Studio page using the usePresetStorage hook. Maintain local state for current tuning parameters (from AudioTuningPanel), pad configuration (from GesturePadGrid), and voice/accent settings (from AccentSelector). Display a list of saved presets with load, rename, and delete buttons for each. Provide a save preset button that opens an input dialog to name the preset, then captures the current tuning, pads, and voice state and saves it via the hook. Implement a load preset function that retrieves the preset data and updates all three sections: apply tuning params to AudioTuningPanel, restore pad configuration to GesturePadGrid, and restore voice/accent to AccentSelector. Add rename functionality that opens an input dialog pre-filled with the current name. Add delete functionality with a confirmation prompt. Show a message when no presets exist yet."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Ensure the AudioContext is properly initialized and shared across all sound feature components on the Sound Studio page using the existing useAudioContextInit and useAudioEngine hooks, with the AudioEnablePrompt shown if the context is not yet running.",
-      "acceptanceCriteria": [
-        "All audio playback on the Sound Studio page uses the same shared AudioContext",
-        "AudioEnablePrompt is shown if the AudioContext is suspended",
-        "Clicking anywhere on the page resumes the AudioContext and dismisses the prompt",
-        "Sound Library previews, gesture pad triggers, and tuning panel all use the shared audio engine"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/SoundStudioPage.tsx",
-          "operation": "modify",
-          "description": "At the top of the SoundStudioPage component, call the useAudioContextInit hook to get the isAudioReady flag and call the useAudioEngine hook to get the shared audio engine instance. Conditionally render the AudioEnablePrompt component when isAudioReady is false, positioning it at the bottom of the page. Pass the audio engine instance to all sound-playing components (GesturePadGrid for pad triggers, SoundLibrary for sound previews via callback). Ensure the AudioTuningPanel's parameter changes update the audio engine configuration. Connect the audio engine's AnalyserNode to the WaveformVisualizer for real-time visualization during playback. All audio operations should use the same shared AudioContext instance from the audio engine."
+          "description": "Add startup diagnostics to verify the backend actor is reachable. Log the canister ID being used during actor initialization. Add a test query call (e.g., getCallerUserRole) in a useEffect after actor initialization to confirm connectivity. Display clear error messages if the backend is unreachable, including environment detection (local vs production) and canister ID validation. Ensure the ActorGuard shows actionable error messages if the backend connection fails."
         }
       ]
     }

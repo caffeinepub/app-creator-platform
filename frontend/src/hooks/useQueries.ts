@@ -2,26 +2,24 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
 import type { SessionView, UserProfile } from '../backend';
 
-// Custom error class to distinguish 401/session errors from generic errors
+// ─── Error helpers ────────────────────────────────────────────────────────────
+
 export class SessionExpiredError extends Error {
-  constructor(message: string) {
+  constructor(message = 'Session expired. Please log in again.') {
     super(message);
     this.name = 'SessionExpiredError';
   }
 }
 
-function parseError(err: unknown): Error {
-  const msg = err instanceof Error ? err.message : String(err);
-  // Detect 401 / user not found errors
-  if (
-    msg.includes('401') ||
-    msg.toLowerCase().includes('user not found') ||
-    msg.toLowerCase().includes('api error 401')
-  ) {
-    return new SessionExpiredError('Your session has expired. Please log out and log back in.');
+function parseError(err: unknown): never {
+  const message = err instanceof Error ? err.message : String(err);
+  if (message.includes('401') || message.toLowerCase().includes('unauthorized')) {
+    throw new SessionExpiredError();
   }
-  return err instanceof Error ? err : new Error(msg);
+  throw err instanceof Error ? err : new Error(message);
 }
+
+// ─── User Profile ─────────────────────────────────────────────────────────────
 
 export function useGetCallerUserProfile() {
   const { actor, isFetching: actorFetching } = useActor();
@@ -33,27 +31,18 @@ export function useGetCallerUserProfile() {
       try {
         return await actor.getCallerUserProfile();
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        if (
-          msg.toLowerCase().includes('not ready') ||
-          msg.toLowerCase().includes('system is not ready')
-        ) {
-          return null;
-        }
-        if (msg.toLowerCase().includes('unauthorized')) {
-          return null;
-        }
-        throw parseError(err);
+        parseError(err);
       }
     },
     enabled: !!actor && !actorFetching,
     retry: false,
+    staleTime: 60_000,
   });
 
   return {
     ...query,
     isLoading: actorFetching || query.isLoading,
-    isFetched: !!actor && query.isFetched,
+    isFetched: !!actor && !actorFetching && query.isFetched,
   };
 }
 
@@ -63,20 +52,24 @@ export function useSaveCallerUserProfile() {
 
   return useMutation({
     mutationFn: async (profile: UserProfile) => {
-      if (!actor) throw new Error('Actor not available. Please refresh the page and try again.');
-      await actor.saveCallerUserProfile(profile);
+      if (!actor) throw new Error('Actor not available');
+      try {
+        await actor.saveCallerUserProfile(profile);
+      } catch (err) {
+        parseError(err);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
     },
-    onError: () => {
-      // Do NOT invalidate on error — keep the modal open so the user sees the error
-    },
   });
 }
 
+// ─── Sessions ─────────────────────────────────────────────────────────────────
+
 export function useGetSessions() {
   const { actor, isFetching: actorFetching } = useActor();
+  const { data: userProfile } = useGetCallerUserProfile();
 
   return useQuery<SessionView[]>({
     queryKey: ['sessions'],
@@ -85,18 +78,11 @@ export function useGetSessions() {
       try {
         return await actor.getSessions();
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        if (
-          msg.toLowerCase().includes('not ready') ||
-          msg.toLowerCase().includes('system is not ready')
-        ) {
-          return [];
-        }
-        throw parseError(err);
+        parseError(err);
       }
     },
-    enabled: !!actor && !actorFetching,
-    retry: false,
+    enabled: !!actor && !actorFetching && !!userProfile,
+    staleTime: 30_000,
   });
 }
 
@@ -110,23 +96,11 @@ export function useGetSession(sessionId: string) {
       try {
         return await actor.getSession(sessionId);
       } catch (err) {
-        throw parseError(err);
+        parseError(err);
       }
     },
     enabled: !!actor && !actorFetching && !!sessionId,
-    retry: (failureCount, error) => {
-      const msg = error instanceof Error ? error.message : String(error);
-      if (
-        msg.includes('not found') ||
-        msg.includes('Access denied') ||
-        msg.toLowerCase().includes('not ready') ||
-        msg.toLowerCase().includes('unauthorized') ||
-        error instanceof SessionExpiredError
-      ) {
-        return false;
-      }
-      return failureCount < 2;
-    },
+    staleTime: 10_000,
   });
 }
 
@@ -135,12 +109,21 @@ export function useCreateSession() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ name, projectType }: { name: string; projectType: string }) => {
+    mutationFn: async ({
+      name,
+      projectType,
+    }: {
+      name: string;
+      projectType: string;
+    }) => {
       if (!actor) throw new Error('Actor not available');
-      const session = await actor.createSession(name, projectType);
-      if (!session) throw new Error('Failed to create session: server returned null');
-      if (!session.id) throw new Error('Failed to create session: missing session ID');
-      return session as SessionView;
+      try {
+        const result = await actor.createSession(name, projectType);
+        if (!result) throw new Error('Failed to create session');
+        return result;
+      } catch (err) {
+        parseError(err);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
@@ -164,9 +147,9 @@ export function useAddMessage() {
     }) => {
       if (!actor) throw new Error('Actor not available');
       try {
-        return await actor.addMessage(sessionId, role, content);
+        await actor.addMessage(sessionId, role, content);
       } catch (err) {
-        throw parseError(err);
+        parseError(err);
       }
     },
     onSuccess: (_data, variables) => {
@@ -191,9 +174,9 @@ export function useUpdateFiles() {
     }) => {
       if (!actor) throw new Error('Actor not available');
       try {
-        return await actor.updateFiles(sessionId, filename, content);
+        await actor.updateFiles(sessionId, filename, content);
       } catch (err) {
-        throw parseError(err);
+        parseError(err);
       }
     },
     onSuccess: (_data, variables) => {
@@ -209,7 +192,11 @@ export function useDeleteSession() {
   return useMutation({
     mutationFn: async (sessionId: string) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.deleteSession(sessionId);
+      try {
+        await actor.deleteSession(sessionId);
+      } catch (err) {
+        parseError(err);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessions'] });

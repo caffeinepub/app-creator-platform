@@ -1,52 +1,40 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
+  "summary": "Noventra project with unresolved starting/launch issues.",
   "architectural_notes": [],
-  "known_issues": [],
-  "isFixRequest": false,
-  "existing_features": [],
-  "new_feature_requests": [
+  "known_issues": [
+    "App has starting/launch issues that are not yet fixed"
+  ],
+  "isFixRequest": true,
+  "existing_features": [
     {
-      "id": "AR-1",
-      "summary": "Add dedicated Sound Studio page as central hub for all sound features",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Create a dedicated Sound Studio page that serves as a central hub integrating all existing sound-related features: Sound Library browser, Accent Selector, Audio Tuning Panel, Gesture Pad Grid, and Waveform Visualizer. The page should be accessible via a top-level route (e.g., /studio) and linked from the app navigation.",
+      "id": "feature-diagnose-and-fix-the-app-startup-launch-issues-preventing-noventra-from-loading-correctly-investigate-the-actorguard-initialization-flow-icp-actor-creation-in-useactor-ts-and-the-internetidentityprovider-bootstrap-sequence-ensure-the-app-mounts-successfully-without-hanging-crashing-or-showing-a-permanent-loading-state-on-first-load",
+      "title": "Diagnose and fix the app startup/launch issues preventing Noventra from loading correctly. Investigate the ActorGuard initialization flow, ICP actor creation in useActor.ts, and the InternetIdentityProvider bootstrap sequence. Ensure the app mounts successfully without hanging, crashing, or showing a permanent loading state on first load.",
       "reqIds": [
         "REQ-1"
       ],
-      "status": "pending"
+      "version": 1
     },
     {
-      "id": "AR-3",
-      "summary": "Integrate audio recording capabilities into the Sound Studio page using the existing useAudioRecorder hook, displaying recording controls (start, stop, export) and a live waveform visualization during recording.",
+      "id": "feature-audit-and-fix-the-tanstack-router-route-setup-in-app-tsx-to-ensure-all-four-routes-home-sessions-new-session-chat-resolve-correctly-on-initial-navigation-and-hard-refresh-confirm-the-applayout-profile-setup-guard-does-not-block-rendering-in-error-states",
+      "title": "Audit and fix the TanStack Router route setup in App.tsx to ensure all four routes (home, sessions, new session, chat) resolve correctly on initial navigation and hard refresh. Confirm the AppLayout profile setup guard does not block rendering in error states.",
       "reqIds": [
         "REQ-2"
       ],
-      "status": "pending"
+      "version": 1
     },
     {
-      "id": "AR-4",
-      "summary": "Integrate the preset management system into the Sound Studio page using the existing usePresetStorage hook, allowing users to save, load, rename, and delete named studio presets that capture current tuning parameters, pad configuration, and voice/accent settings.",
+      "id": "feature-ensure-the-backend-actor-main-mo-is-reachable-on-app-startup-verify-the-canister-id-configuration-and-that-anonymous-authenticated-calls-to-query-methods-do-not-fail-silently-during-initialization",
+      "title": "Ensure the backend actor (main.mo) is reachable on app startup. Verify the canister ID configuration and that anonymous/authenticated calls to query methods do not fail silently during initialization.",
       "reqIds": [
         "REQ-3"
       ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-5",
-      "summary": "Ensure the AudioContext is properly initialized and shared across all sound feature components on the Sound Studio page using the existing useAudioContextInit and useAudioEngine hooks, with the AudioEnablePrompt shown if the context is not yet running.",
-      "reqIds": [
-        "REQ-4"
-      ],
-      "status": "pending"
+      "version": 1
     }
   ],
-  "projectName": "Noventra Sound Studio",
+  "new_feature_requests": [],
+  "projectName": "Noventra",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

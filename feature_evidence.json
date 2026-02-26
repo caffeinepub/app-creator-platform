@@ -1,4 +1,70 @@
 {
   "kind": "feature_evidence_report",
-  "features": []
+  "features": [
+    {
+      "featureId": "feature-diagnose-and-fix-the-app-startup-launch-issues-preventing-noventra-from-loading-correctly-investigate-the-actorguard-initialization-flow-icp-actor-creation-in-useactor-ts-and-the-internetidentityprovider-bootstrap-sequence-ensure-the-app-mounts-successfully-without-hanging-crashing-or-showing-a-permanent-loading-state-on-first-load",
+      "featureTitle": "Diagnose and fix the app startup/launch issues preventing Noventra from loading correctly. Investigate the ActorGuard initialization flow, ICP actor creation in useActor.ts, and the InternetIdentityProvider bootstrap sequence. Ensure the app mounts successfully without hanging, crashing, or showing a permanent loading state on first load.",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/ActorGuard.tsx"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-audit-and-fix-the-tanstack-router-route-setup-in-app-tsx-to-ensure-all-four-routes-home-sessions-new-session-chat-resolve-correctly-on-initial-navigation-and-hard-refresh-confirm-the-applayout-profile-setup-guard-does-not-block-rendering-in-error-states",
+      "featureTitle": "Audit and fix the TanStack Router route setup in App.tsx to ensure all four routes (home, sessions, new session, chat) resolve correctly on initial navigation and hard refresh. Confirm the AppLayout profile setup guard does not block rendering in error states.",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/ProfileSetup.tsx"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-ensure-the-backend-actor-main-mo-is-reachable-on-app-startup-verify-the-canister-id-configuration-and-that-anonymous-authenticated-calls-to-query-methods-do-not-fail-silently-during-initialization",
+      "featureTitle": "Ensure the backend actor (main.mo) is reachable on app startup. Verify the canister ID configuration and that anonymous/authenticated calls to query methods do not fail silently during initialization.",
+      "files": [
+        "frontend/src/App.tsx"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    }
+  ]
 }

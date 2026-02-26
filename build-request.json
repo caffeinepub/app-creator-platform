@@ -1,102 +1,75 @@
 {
   "kind": "build_request",
-  "title": "Add dedicated Sound Studio page as central hub for all sound features",
-  "projectName": "Noventra Sound Studio",
-  "priority": "normal",
+  "title": "Fix Noventra app startup/launch issues",
+  "projectName": "Noventra",
+  "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Create a dedicated Sound Studio page that serves as a central hub integrating all existing sound-related features: Sound Library browser, Accent Selector, Audio Tuning Panel, Gesture Pad Grid, and Waveform Visualizer. The page should be accessible via a top-level route (e.g., /studio) and linked from the app navigation.",
+      "text": "Diagnose and fix the app startup/launch issues preventing Noventra from loading correctly. Investigate the ActorGuard initialization flow, ICP actor creation in useActor.ts, and the InternetIdentityProvider bootstrap sequence. Ensure the app mounts successfully without hanging, crashing, or showing a permanent loading state on first load.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-3",
-          "msg-5"
+          "msg-6"
         ],
         "quotes": [
-          "The dedicated Sound Studio page didn't make it in this round; want me to add that as a central hub for all sound features?",
-          "yes add all the features"
+          "Noventra has starting issues .. not fixed yet"
         ]
       },
       "acceptanceCriteria": [
-        "A /studio route exists and renders the Sound Studio page",
-        "The Sound Studio page is reachable from the main navigation",
-        "The page contains the Sound Library browser (SoundLibrary.tsx) in a browsable, filterable section",
-        "The page contains the Accent Selector (AccentSelector.tsx) with pitch/rate modifier controls",
-        "The page contains the Audio Tuning Panel (AudioTuningPanel.tsx) with sliders, presets, and reset",
-        "The page contains the Gesture Pad Grid (GesturePadGrid.tsx) with edit mode and keyboard shortcut support",
-        "The page contains the Waveform Visualizer (WaveformVisualizer.tsx) reflecting real-time audio output",
-        "All five feature sections are visible on the same page, organized in a coherent layout"
+        "The app loads and renders without hanging on the ActorGuard loading screen",
+        "The ICP actor initializes successfully on page load (both authenticated and anonymous)",
+        "No console errors related to actor initialization or identity provider on startup",
+        "The home/landing page is reachable within a reasonable time after page load",
+        "Retry mechanism in ActorGuard works correctly if actor initialization is slow"
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Integrate audio recording capabilities into the Sound Studio page using the existing useAudioRecorder hook, displaying recording controls (start, stop, export) and a live waveform visualization during recording.",
+      "text": "Audit and fix the TanStack Router route setup in App.tsx to ensure all four routes (home, sessions, new session, chat) resolve correctly on initial navigation and hard refresh. Confirm the AppLayout profile setup guard does not block rendering in error states.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-5"
+          "msg-6"
         ],
         "quotes": [
-          "yes add all the features"
+          "Noventra has starting issues .. not fixed yet"
         ]
       },
       "acceptanceCriteria": [
-        "Recording start/stop controls are present on the Sound Studio page",
-        "Elapsed recording time is displayed while recording",
-        "The waveform visualizer animates from the microphone AnalyserNode during recording",
-        "Recorded audio can be exported/downloaded as a WAV file using audioExport utilities"
+        "All four routes are accessible without 404 or blank screen on direct navigation",
+        "Hard-refreshing any route loads the correct page",
+        "The ProfileSetup guard only triggers when a profile is genuinely missing, not on every load",
+        "No routing errors appear in the console on startup"
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Integrate the preset management system into the Sound Studio page using the existing usePresetStorage hook, allowing users to save, load, rename, and delete named studio presets that capture current tuning parameters, pad configuration, and voice/accent settings.",
-      "target": "frontend",
+      "text": "Ensure the backend actor (main.mo) is reachable on app startup. Verify the canister ID configuration and that anonymous/authenticated calls to query methods do not fail silently during initialization.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-5"
+          "msg-6"
         ],
         "quotes": [
-          "yes add all the features"
+          "Noventra has starting issues .. not fixed yet"
         ]
       },
       "acceptanceCriteria": [
-        "A preset management panel is visible on the Sound Studio page",
-        "Users can save the current tuning + pad + accent state as a named preset",
-        "Users can load an existing preset and have all controls update accordingly",
-        "Users can rename and delete presets",
-        "Presets persist across page reloads via localStorage"
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Ensure the AudioContext is properly initialized and shared across all sound feature components on the Sound Studio page using the existing useAudioContextInit and useAudioEngine hooks, with the AudioEnablePrompt shown if the context is not yet running.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-5"
-        ],
-        "quotes": [
-          "yes add all the features"
-        ]
-      },
-      "acceptanceCriteria": [
-        "All audio playback on the Sound Studio page uses the same shared AudioContext",
-        "AudioEnablePrompt is shown if the AudioContext is suspended",
-        "Clicking anywhere on the page resumes the AudioContext and dismisses the prompt",
-        "Sound Library previews, gesture pad triggers, and tuning panel all use the shared audio engine"
+        "The frontend successfully connects to the backend canister on startup",
+        "Canister ID is correctly resolved in both local and production environments",
+        "Query calls made during initialization return valid responses or clear error messages"
       ]
     }
   ],
   "constraints": [
     "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui",
-    "Compose existing components (SoundLibrary, AccentSelector, AudioTuningPanel, GesturePadGrid, WaveformVisualizer, AudioEnablePrompt) rather than rewriting them",
-    "Reuse existing hooks (useAudioEngine, useAudioRecorder, usePresetStorage, useAudioContextInit) without modifying them"
+    "Preserve all existing route definitions and page components — only fix initialization/startup logic"
   ],
   "nonGoals": [
-    "Backend changes — all sound features are client-side only",
-    "Creating new sound synthesis algorithms beyond what already exists in soundLibrary.ts and useAudioEngine.ts",
-    "Modifying existing chat or session pages"
+    "Adding new features or pages",
+    "Changing the visual design or theme",
+    "Modifying backend data models or canister logic beyond connectivity fixes"
   ],
   "imageRequirements": {
     "required": [],

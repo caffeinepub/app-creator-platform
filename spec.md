@@ -1,13 +1,15 @@
 # Specification
 
 ## Summary
-**Goal:** Add a dedicated Sound Studio page at `/studio` that serves as a central hub integrating all existing sound features into a single cohesive interface.
+**Goal:** Diagnose and fix the Noventra app startup and launch issues so the application loads correctly without hanging, crashing, or showing a permanent loading state.
 
 **Planned changes:**
-- Create a `/studio` route and link it from the main navigation
-- Build a Sound Studio page that composes the existing `SoundLibrary`, `AccentSelector`, `AudioTuningPanel`, `GesturePadGrid`, and `WaveformVisualizer` components into a unified layout
-- Add audio recording controls (start, stop, export) using the existing `useAudioRecorder` hook, with elapsed time display and live waveform animation from the microphone
-- Add a preset management panel using the existing `usePresetStorage` hook to save, load, rename, and delete named presets that capture tuning, pad, and accent state (persisted via localStorage)
-- Initialize and share a single `AudioContext` across all components on the page using `useAudioContextInit` and `useAudioEngine`, displaying `AudioEnablePrompt` when the context is suspended
+- Fix the ActorGuard initialization flow so it does not hang on the loading screen, including ensuring the retry mechanism works correctly
+- Fix ICP actor creation and initialization so it succeeds on page load for both authenticated and anonymous users
+- Fix the InternetIdentityProvider bootstrap sequence to avoid startup errors
+- Audit and fix the TanStack Router route setup in App.tsx so all four routes (home, sessions, new session, chat) resolve correctly on initial navigation and hard refresh
+- Ensure the ProfileSetup guard only triggers when a profile is genuinely missing, not on every load
+- Verify the frontend correctly resolves the backend canister ID in both local and production environments
+- Ensure anonymous and authenticated query calls to the backend canister during initialization return valid responses or clear error messages
 
-**User-visible outcome:** Users can navigate to the Sound Studio page to access all sound features in one place — browse and preview sounds, adjust accents and tuning, trigger gesture pads, visualize audio, record and export audio, and manage named studio presets.
+**User-visible outcome:** The Noventra app loads successfully without hanging or crashing, all routes are accessible, and users can reach the home/landing page within a reasonable time after page load.

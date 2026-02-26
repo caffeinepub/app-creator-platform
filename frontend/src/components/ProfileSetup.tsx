@@ -1,91 +1,111 @@
-import React, { useState } from "react";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
-import { useSaveCallerUserProfile } from "../hooks/useQueries";
-import { User, Loader2, Sparkles } from "lucide-react";
+import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useSaveCallerUserProfile } from '../hooks/useQueries';
+import Logo from './Logo';
 
-interface ProfileSetupProps {
-  onComplete: () => void;
-}
+export default function ProfileSetup() {
+  const [name, setName] = useState('');
+  const [error, setError] = useState('');
+  const queryClient = useQueryClient();
 
-export default function ProfileSetup({ onComplete }: ProfileSetupProps) {
-  const [name, setName] = useState("");
-  const [error, setError] = useState("");
-  const { identity } = useInternetIdentity();
   const saveProfile = useSaveCallerUserProfile();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) {
-      setError("Please enter your name.");
+      setError('Please enter your name.');
       return;
     }
     if (trimmed.length < 2) {
-      setError("Name must be at least 2 characters.");
+      setError('Name must be at least 2 characters.');
       return;
     }
-    setError("");
+    if (trimmed.length > 50) {
+      setError('Name must be 50 characters or fewer.');
+      return;
+    }
+
+    setError('');
     try {
       await saveProfile.mutateAsync({ name: trimmed });
-      onComplete();
+      await queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
     } catch (err: unknown) {
-      const e = err as Error;
-      if (e?.message?.includes("Unauthorized") || e?.message?.includes("not ready")) {
-        setError("Authentication error. Please try logging out and back in.");
-      } else if (e?.message?.includes("connection") || e?.message?.includes("network")) {
-        setError("Connection error. Please check your internet and try again.");
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes('Unauthorized') || message.includes('401')) {
+        setError('Authentication error. Please log out and log back in.');
+      } else if (
+        message.includes('network') ||
+        message.includes('fetch') ||
+        message.includes('connect')
+      ) {
+        setError('Network error. Please check your connection and try again.');
       } else {
-        setError("Failed to save profile. Please try again.");
+        setError('Failed to save profile. Please try again.');
       }
     }
   };
 
-  const principal = identity?.getPrincipal().toString();
-  const shortPrincipal = principal
-    ? principal.slice(0, 5) + "..." + principal.slice(-3)
-    : "";
-
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="glass-card rounded-2xl p-8 w-full max-w-md border border-brand/20 shadow-2xl shadow-brand/10">
+    /* Full-screen overlay */
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-sm p-4">
+      {/* Background glow */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-primary/5 blur-3xl" />
+      </div>
+
+      <div className="relative z-10 glass-card rounded-2xl p-8 w-full max-w-md shadow-2xl border border-border/50">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center">
-            <Sparkles className="w-8 h-8 text-brand" />
-          </div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">Welcome to Noventra.ai</h2>
-          <p className="text-muted-foreground text-sm">
-            Let's set up your profile to get started
-          </p>
-          {shortPrincipal && (
-            <p className="text-xs text-muted-foreground/60 mt-2 font-mono">
-              ID: {shortPrincipal}
+        <div className="flex flex-col items-center gap-3 mb-8">
+          <Logo size="small" />
+          <div className="text-center">
+            <h1 className="text-xl font-semibold text-foreground mt-2">
+              Welcome to Noventra
+            </h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Let's set up your profile to get started.
             </p>
-          )}
+          </div>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground/80 flex items-center gap-2">
-              <User className="w-4 h-4 text-brand" />
+            <label
+              htmlFor="profile-name"
+              className="block text-sm font-medium text-foreground"
+            >
               Your Name
             </label>
             <input
+              id="profile-name"
               type="text"
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
-                setError("");
+                if (error) setError('');
               }}
-              placeholder="Enter your name..."
-              disabled={saveProfile.isPending}
+              placeholder="Enter your name"
               autoFocus
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-brand/50 focus:ring-1 focus:ring-brand/30 transition-all disabled:opacity-60"
+              maxLength={50}
+              className="w-full px-4 py-2.5 rounded-lg bg-background/60 border border-border/60 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
             />
             {error && (
-              <p className="text-xs text-red-400 flex items-center gap-1">
-                <span>⚠</span> {error}
+              <p className="text-destructive text-sm flex items-center gap-1.5">
+                <svg
+                  className="w-4 h-4 shrink-0"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+                  />
+                </svg>
+                {error}
               </p>
             )}
           </div>
@@ -93,18 +113,33 @@ export default function ProfileSetup({ onComplete }: ProfileSetupProps) {
           <button
             type="submit"
             disabled={saveProfile.isPending || !name.trim()}
-            className="w-full btn-primary py-3 rounded-xl font-medium text-sm flex items-center justify-center gap-2 disabled:opacity-60 transition-all"
+            className="btn-primary w-full py-2.5 rounded-lg font-medium text-sm transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {saveProfile.isPending ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Setting up...
+                <svg
+                  className="w-4 h-4 animate-spin"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 22 6.477 22 12h-4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+                Saving…
               </>
             ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                Get Started
-              </>
+              'Continue'
             )}
           </button>
         </form>
