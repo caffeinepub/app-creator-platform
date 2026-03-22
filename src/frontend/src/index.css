@@ -1,0 +1,215 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ── Amber/Orange dark palette ── */
+    --background: oklch(0.1 0.01 260);
+    --foreground: oklch(0.95 0.01 80);
+
+    --card: oklch(0.13 0.01 260);
+    --card-foreground: oklch(0.95 0.01 80);
+
+    --popover: oklch(0.13 0.01 260);
+    --popover-foreground: oklch(0.95 0.01 80);
+
+    /* Brand = amber/orange */
+    --primary: oklch(0.72 0.19 45);
+    --primary-foreground: oklch(0.1 0.01 260);
+
+    --secondary: oklch(0.18 0.01 260);
+    --secondary-foreground: oklch(0.85 0.01 80);
+
+    --muted: oklch(0.18 0.01 260);
+    --muted-foreground: oklch(0.55 0.01 260);
+
+    --accent: oklch(0.2 0.02 45);
+    --accent-foreground: oklch(0.95 0.01 80);
+
+    --destructive: oklch(0.55 0.22 25);
+    --destructive-foreground: oklch(0.98 0.01 80);
+
+    --border: oklch(0.22 0.01 260);
+    --input: oklch(0.22 0.01 260);
+    --ring: oklch(0.72 0.19 45);
+
+    --radius: 0.75rem;
+
+    /* Brand tokens */
+    --brand: oklch(0.72 0.19 45);
+    --brand-dim: oklch(0.6 0.16 45);
+    --brand-glow: oklch(0.72 0.19 45 / 0.35);
+  }
+
+  .dark {
+    --background: oklch(0.1 0.01 260);
+    --foreground: oklch(0.95 0.01 80);
+    --card: oklch(0.13 0.01 260);
+    --card-foreground: oklch(0.95 0.01 80);
+    --popover: oklch(0.13 0.01 260);
+    --popover-foreground: oklch(0.95 0.01 80);
+    --primary: oklch(0.72 0.19 45);
+    --primary-foreground: oklch(0.1 0.01 260);
+    --secondary: oklch(0.18 0.01 260);
+    --secondary-foreground: oklch(0.85 0.01 80);
+    --muted: oklch(0.18 0.01 260);
+    --muted-foreground: oklch(0.55 0.01 260);
+    --accent: oklch(0.2 0.02 45);
+    --accent-foreground: oklch(0.95 0.01 80);
+    --destructive: oklch(0.55 0.22 25);
+    --destructive-foreground: oklch(0.98 0.01 80);
+    --border: oklch(0.22 0.01 260);
+    --input: oklch(0.22 0.01 260);
+    --ring: oklch(0.72 0.19 45);
+  }
+
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Inter", system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  /* Glass card */
+  .glass-card {
+    background: oklch(0.14 0.01 260 / 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* Primary button — amber gradient */
+  .btn-primary {
+    background: linear-gradient(
+      135deg,
+      oklch(0.65 0.22 30) 0%,
+      oklch(0.72 0.19 45) 50%,
+      oklch(0.78 0.17 55) 100%
+    );
+    color: oklch(0.1 0.01 260);
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 12px oklch(0.72 0.19 45 / 0.25);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: linear-gradient(
+      135deg,
+      oklch(0.68 0.22 30) 0%,
+      oklch(0.76 0.19 45) 50%,
+      oklch(0.82 0.17 55) 100%
+    );
+    box-shadow: 0 4px 20px oklch(0.72 0.19 45 / 0.4);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px oklch(0.72 0.19 45 / 0.2);
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    background: linear-gradient(
+      135deg,
+      oklch(0.72 0.19 45) 0%,
+      oklch(0.85 0.15 70) 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Glow effects */
+  .glow-brand {
+    box-shadow: 0 0 20px oklch(0.72 0.19 45 / 0.3), 0 0 40px
+      oklch(0.72 0.19 45 / 0.15);
+  }
+
+  .text-glow-brand {
+    text-shadow: 0 0 20px oklch(0.72 0.19 45 / 0.6);
+  }
+}
+
+@layer utilities {
+  /* Scrollbar */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: oklch(0.25 0.01 260) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: oklch(0.25 0.01 260);
+    border-radius: 2px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.35 0.01 260);
+  }
+}
+
+/* Animations */
+@keyframes flame-flicker {
+  0%,
+  100% {
+    transform: scaleY(1) scaleX(1);
+  }
+  25% {
+    transform: scaleY(1.04) scaleX(0.97);
+  }
+  50% {
+    transform: scaleY(0.97) scaleX(1.02);
+  }
+  75% {
+    transform: scaleY(1.02) scaleX(0.98);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease forwards;
+}
+.animate-slide-up {
+  animation: slide-up 0.4s ease forwards;
+}
