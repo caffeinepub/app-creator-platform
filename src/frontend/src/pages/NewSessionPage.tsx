@@ -2,15 +2,20 @@ import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
   Box,
+  Camera,
   Code2,
+  Cpu,
   Film,
   Gamepad2,
   Globe,
   LayoutDashboard,
   Loader2,
+  Music,
   Server,
   Smartphone,
   Sparkles,
+  User,
+  Video,
   Waves,
 } from "lucide-react";
 import type React from "react";
@@ -20,6 +25,51 @@ import Logo from "../components/Logo";
 import { useCreateSession } from "../hooks/useQueries";
 
 const projectTypes = [
+  {
+    id: "video",
+    icon: <Video className="w-6 h-6" />,
+    label: "Cinematic 3D Video",
+    desc: "Long realistic animated 3D videos with multi-scene timelines",
+    color: "text-rose-400",
+    bg: "bg-rose-400/10",
+    border: "border-rose-400/20",
+  },
+  {
+    id: "4d",
+    icon: <Cpu className="w-6 h-6" />,
+    label: "4D Animation",
+    desc: "True 4D hypercube projections, tesseracts, and dimensional rotation",
+    color: "text-violet-400",
+    bg: "bg-violet-400/10",
+    border: "border-violet-400/20",
+  },
+  {
+    id: "image",
+    icon: <Camera className="w-6 h-6" />,
+    label: "Image Generation",
+    desc: "Generate realistic images and visual art with AI",
+    color: "text-pink-400",
+    bg: "bg-pink-400/10",
+    border: "border-pink-400/20",
+  },
+  {
+    id: "avatar",
+    icon: <User className="w-6 h-6" />,
+    label: "Avatar Creation",
+    desc: "Build and customize your 3D clone avatar",
+    color: "text-indigo-400",
+    bg: "bg-indigo-400/10",
+    border: "border-indigo-400/20",
+  },
+  {
+    id: "sounddirection",
+    icon: <Music className="w-6 h-6" />,
+    label: "Sound Direction",
+    desc: "Compose layered soundscapes and music automatically",
+    color: "text-cyan-400",
+    bg: "bg-cyan-400/10",
+    border: "border-cyan-400/20",
+  },
   {
     id: "landing",
     icon: <Globe className="w-6 h-6" />,
@@ -43,9 +93,9 @@ const projectTypes = [
     icon: <Box className="w-6 h-6" />,
     label: "3D Scene",
     desc: "WebGL 3D scene with Three.js and animations",
-    color: "text-cyan-400",
-    bg: "bg-cyan-400/10",
-    border: "border-cyan-400/20",
+    color: "text-teal-400",
+    bg: "bg-teal-400/10",
+    border: "border-teal-400/20",
   },
   {
     id: "animation",
@@ -107,7 +157,7 @@ export default function NewSessionPage() {
   const navigate = useNavigate();
   const createSession = useCreateSession();
   const [name, setName] = useState("");
-  const [selectedType, setSelectedType] = useState("landing");
+  const [selectedType, setSelectedType] = useState("video");
   const [error, setError] = useState("");
 
   const handleCreate = async () => {
@@ -164,6 +214,7 @@ export default function NewSessionPage() {
           type="button"
           onClick={() => navigate({ to: "/sessions" })}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
+          data-ocid="newsession.back.button"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Sessions
@@ -200,8 +251,16 @@ export default function NewSessionPage() {
               onKeyDown={handleKeyDown}
               placeholder="e.g. Solar System 3D, Particle Galaxy, My Portfolio..."
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-brand/50 focus:ring-1 focus:ring-brand/30 transition-all"
+              data-ocid="newsession.name.input"
             />
-            {error && <p className="text-xs text-red-400">{error}</p>}
+            {error && (
+              <p
+                className="text-xs text-red-400"
+                data-ocid="newsession.name.error_state"
+              >
+                {error}
+              </p>
+            )}
           </div>
 
           {/* Project type */}
@@ -209,12 +268,16 @@ export default function NewSessionPage() {
             <span className="text-sm font-medium text-foreground/80">
               Project Type
             </span>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {projectTypes.map((type) => (
+            <div
+              className="grid grid-cols-2 sm:grid-cols-3 gap-3"
+              data-ocid="newsession.types.list"
+            >
+              {projectTypes.map((type, idx) => (
                 <button
                   type="button"
                   key={type.id}
                   onClick={() => setSelectedType(type.id)}
+                  data-ocid={`newsession.types.item.${idx + 1}`}
                   className={`relative p-4 rounded-xl border text-left transition-all duration-200 ${
                     selectedType === type.id
                       ? `${type.bg} ${type.border} border-2`
@@ -242,6 +305,7 @@ export default function NewSessionPage() {
             onClick={handleCreate}
             disabled={createSession.isPending || !name.trim()}
             className="w-full btn-primary py-4 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-60 transition-all shadow-lg shadow-brand/20 hover:shadow-brand/30 hover:-translate-y-0.5"
+            data-ocid="newsession.submit_button"
           >
             {createSession.isPending ? (
               <>

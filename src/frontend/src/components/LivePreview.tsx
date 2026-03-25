@@ -47,6 +47,33 @@ function sanitizeHtmlForPreview(html: string): string {
   window.confirm = function(msg) { console.warn('[preview] confirm suppressed:', msg); return true; };
   window.prompt  = function(msg) { console.warn('[preview] prompt suppressed:', msg); return null; };
 
+  // ── Track ALL AudioContext instances and resume on any user interaction ──
+  var _allAudioContexts = [];
+  function _patchAudioContext(OrigCtx) {
+    if (!OrigCtx) return OrigCtx;
+    function PatchedCtx(options) {
+      var ctx = new OrigCtx(options);
+      _allAudioContexts.push(ctx);
+      return ctx;
+    }
+    PatchedCtx.prototype = OrigCtx.prototype;
+    try { Object.setPrototypeOf(PatchedCtx, OrigCtx); } catch(e) {}
+    return PatchedCtx;
+  }
+  if (window.AudioContext) window.AudioContext = _patchAudioContext(window.AudioContext);
+  if (window.webkitAudioContext) window.webkitAudioContext = _patchAudioContext(window.webkitAudioContext);
+
+  function resumeAllAudioContexts() {
+    _allAudioContexts.forEach(function(ctx) {
+      try { if (ctx && ctx.state === 'suspended') ctx.resume(); } catch(e) {}
+    });
+  }
+  document.addEventListener('click', resumeAllAudioContexts, { passive: true });
+  document.addEventListener('keydown', resumeAllAudioContexts, { passive: true });
+  document.addEventListener('touchstart', resumeAllAudioContexts, { passive: true });
+  document.addEventListener('pointerdown', resumeAllAudioContexts, { passive: true });
+
+  // ── Stub window.Audio for external file URLs only (data: and blob: are allowed) ──
   var _OrigAudio = window.Audio;
   window.Audio = function(src) {
     if (!src || src.startsWith('data:') || src.startsWith('blob:')) return new _OrigAudio(src);
@@ -94,17 +121,10 @@ function sanitizeHtmlForPreview(html: string): string {
     if (el && (el.tagName === 'AUDIO' || el.tagName === 'VIDEO')) {
       var placeholder = document.createElement('div');
       placeholder.style.cssText = 'display:flex;align-items:center;justify-content:center;background:#1a1a2e;border:1px solid #333;border-radius:8px;padding:12px 16px;color:#888;font-family:sans-serif;font-size:12px;min-height:48px;';
-      placeholder.textContent = '\uD83D\uDD07 Audio unavailable in preview (Web Audio API is active)';
+      placeholder.textContent = '\uD83D\uDD07 Audio file unavailable in preview — Web Audio API synthesizer is active';
       if (el.parentNode) el.parentNode.replaceChild(placeholder, el);
     }
   }, true);
-
-  function resumeAllContexts() {
-    if (window._previewAudioCtx && window._previewAudioCtx.state === 'suspended') window._previewAudioCtx.resume().catch(function(){});
-  }
-  document.addEventListener('click', resumeAllContexts, { passive: true });
-  document.addEventListener('keydown', resumeAllContexts, { passive: true });
-  document.addEventListener('touchstart', resumeAllContexts, { passive: true });
 
   var audioExtensions = /\.(mp3|wav|ogg|aac|flac|m4a|opus|weba)(\?.*)?$/i;
   var _origFetch = window.fetch;

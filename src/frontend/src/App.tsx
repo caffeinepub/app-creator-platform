@@ -9,7 +9,7 @@ import {
   createRouter,
   useNavigate,
 } from "@tanstack/react-router";
-import { Palette, Sunrise } from "lucide-react";
+import { Camera, Music, Palette, Sunrise, User } from "lucide-react";
 import { ThemeProvider } from "next-themes";
 import React, { useState, useCallback } from "react";
 import ActorGuard from "./components/ActorGuard";
@@ -23,11 +23,14 @@ import { useAudioContextInit } from "./hooks/useAudioContextInit";
 import { useInternetIdentity } from "./hooks/useInternetIdentity";
 import { useScheduleMorningTone } from "./hooks/useMorningTone";
 import { useGetCallerUserProfile } from "./hooks/useQueries";
+import AvatarCreatorPage from "./pages/AvatarCreatorPage";
 import ChatPage from "./pages/ChatPage";
 import HomePage from "./pages/HomePage";
+import ImageGenPage from "./pages/ImageGenPage";
 import MorningTonePage from "./pages/MorningTonePage";
 import NewSessionPage from "./pages/NewSessionPage";
 import SessionsPage from "./pages/SessionsPage";
+import SoundDirectorPage from "./pages/SoundDirectorPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -70,15 +73,41 @@ function AppLayout() {
                 <Link
                   to="/sessions"
                   className="px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                  data-ocid="nav.sessions.link"
                 >
                   Sessions
                 </Link>
                 <Link
                   to="/morning-tone"
                   className="px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors flex items-center gap-1.5"
+                  data-ocid="nav.morning_tone.link"
                 >
                   <Sunrise className="w-3.5 h-3.5" />
                   Morning Tone
+                </Link>
+                <Link
+                  to="/image-gen"
+                  className="px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors flex items-center gap-1.5"
+                  data-ocid="nav.imagegen.link"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  Image Gen
+                </Link>
+                <Link
+                  to="/avatar-creator"
+                  className="px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors flex items-center gap-1.5"
+                  data-ocid="nav.avatar.link"
+                >
+                  <User className="w-3.5 h-3.5" />
+                  Avatar
+                </Link>
+                <Link
+                  to="/sound-director"
+                  className="px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors flex items-center gap-1.5"
+                  data-ocid="nav.sounddir.link"
+                >
+                  <Music className="w-3.5 h-3.5" />
+                  Sound Director
                 </Link>
               </>
             )}
@@ -163,12 +192,33 @@ const morningToneRoute = createRoute({
   component: MorningTonePage,
 });
 
+const imageGenRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/image-gen",
+  component: ImageGenPage,
+});
+
+const avatarCreatorRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/avatar-creator",
+  component: AvatarCreatorPage,
+});
+
+const soundDirectorRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/sound-director",
+  component: SoundDirectorPage,
+});
+
 const routeTree = rootRoute.addChildren([
   homeRoute,
   sessionsRoute,
   newSessionRoute,
   chatRoute,
   morningToneRoute,
+  imageGenRoute,
+  avatarCreatorRoute,
+  soundDirectorRoute,
 ]);
 
 const router = createRouter({ routeTree });
