@@ -9,7 +9,7 @@ import {
   createRouter,
   useNavigate,
 } from "@tanstack/react-router";
-import { Camera, Music, Palette, Sunrise, User } from "lucide-react";
+import { Camera, Music, Sunrise, User } from "lucide-react";
 import { ThemeProvider } from "next-themes";
 import React, { useState, useCallback } from "react";
 import ActorGuard from "./components/ActorGuard";
@@ -38,6 +38,38 @@ const queryClient = new QueryClient({
     mutations: { retry: 0 },
   },
 });
+
+const THEMES = ["indigo", "red", "emerald"] as const;
+type Theme = (typeof THEMES)[number];
+
+function ThemeSwitcher() {
+  const [theme, setTheme] = React.useState<Theme>(() => {
+    return (localStorage.getItem("noventra_theme") as Theme) || "indigo";
+  });
+  React.useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("noventra_theme", theme);
+  }, [theme]);
+  const next = () =>
+    setTheme((t) => THEMES[(THEMES.indexOf(t) + 1) % THEMES.length]);
+  const label =
+    theme === "indigo"
+      ? "\uD83D\uDD35"
+      : theme === "red"
+        ? "\uD83D\uDD34"
+        : "\uD83D\uDFE2";
+  return (
+    <button
+      type="button"
+      onClick={next}
+      title={`Theme: ${theme}`}
+      className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors text-sm"
+      data-ocid="nav.theme_switcher.toggle"
+    >
+      {label}
+    </button>
+  );
+}
 
 function AppLayout() {
   const { identity } = useInternetIdentity();
@@ -122,7 +154,6 @@ function AppLayout() {
                       type="button"
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors border border-border/50"
                     >
-                      <Palette className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">Icon</span>
                     </button>
                   }
@@ -133,6 +164,7 @@ function AppLayout() {
                 />
               </>
             )}
+            <ThemeSwitcher />
             <LoginButton />
           </div>
         </div>
@@ -150,7 +182,7 @@ function AppLayout() {
 
       {morningAlarmVisible && (
         <AlarmNotification
-          message="Morning Manifestation Tone — Start your day with intention 🌅"
+          message="Morning Manifestation Tone — Start your day with intention \uD83C\uDF…"
           onDismiss={() => setMorningAlarmVisible(false)}
         />
       )}

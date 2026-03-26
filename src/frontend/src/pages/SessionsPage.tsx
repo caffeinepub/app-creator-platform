@@ -2,17 +2,24 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
   AlertCircle,
+  Box,
   Clock,
   Code2,
+  Film,
   Gamepad2,
   Globe,
+  Layers,
   LayoutDashboard,
   Loader2,
   MessageSquare,
+  Music,
   Plus,
+  Radio,
+  Search,
   Server,
   Smartphone,
   Trash2,
+  User,
 } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
@@ -55,6 +62,36 @@ const projectTypeConfig: Record<
     icon: <Gamepad2 className="w-4 h-4" />,
     label: "Game",
     color: "text-pink-400",
+  },
+  "3d": {
+    icon: <Box className="w-4 h-4" />,
+    label: "3D Scene",
+    color: "text-teal-400",
+  },
+  video: {
+    icon: <Film className="w-4 h-4" />,
+    label: "Cinematic Video",
+    color: "text-rose-400",
+  },
+  "4d": {
+    icon: <Layers className="w-4 h-4" />,
+    label: "4D Animation",
+    color: "text-violet-400",
+  },
+  sound: {
+    icon: <Music className="w-4 h-4" />,
+    label: "Music & Sound",
+    color: "text-yellow-400",
+  },
+  avatar: {
+    icon: <User className="w-4 h-4" />,
+    label: "3D Avatar",
+    color: "text-indigo-400",
+  },
+  sounddirection: {
+    icon: <Radio className="w-4 h-4" />,
+    label: "Sound Director",
+    color: "text-cyan-400",
   },
 };
 
@@ -153,6 +190,7 @@ export default function SessionsPage() {
   const { data: sessions, isLoading, error } = useGetSessions();
   const deleteSession = useDeleteSession();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleDelete = async (sessionId: string) => {
     setDeletingId(sessionId);
@@ -162,6 +200,10 @@ export default function SessionsPage() {
       setDeletingId(null);
     }
   };
+
+  const filteredSessions = sessions?.filter((s) =>
+    s.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
 
   if (!isAuthenticated) {
     return (
@@ -198,6 +240,7 @@ export default function SessionsPage() {
               type="button"
               onClick={() => navigate({ to: "/sessions/new" })}
               className="btn-primary flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+              data-ocid="sessions.new_session.button"
             >
               <Plus className="w-4 h-4" />
               New Session
@@ -208,7 +251,7 @@ export default function SessionsPage() {
       </header>
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-10">
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-2xl font-display font-bold text-foreground mb-1">
             My Sessions
           </h1>
@@ -219,12 +262,28 @@ export default function SessionsPage() {
           </p>
         </div>
 
+        {/* Search */}
+        {!isLoading && sessions && sessions.length > 0 && (
+          <div className="relative mb-6">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search sessions..."
+              className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-brand/50 focus:ring-1 focus:ring-brand/30 transition-all"
+              data-ocid="sessions.search_input"
+            />
+          </div>
+        )}
+
         {isLoading && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
                 className="glass-card rounded-2xl border border-white/10 overflow-hidden animate-pulse"
+                data-ocid={`sessions.loading_state.${i}`}
               >
                 <div className="h-1 bg-white/10" />
                 <div className="p-5 space-y-3">
@@ -238,7 +297,10 @@ export default function SessionsPage() {
         )}
 
         {error && !isLoading && (
-          <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-6 text-center">
+          <div
+            className="rounded-2xl border border-red-500/20 bg-red-500/5 p-6 text-center"
+            data-ocid="sessions.error_state"
+          >
             <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-3" />
             <p className="text-red-300 text-sm mb-4">
               Failed to load sessions. Please try again.
@@ -256,7 +318,7 @@ export default function SessionsPage() {
         )}
 
         {!isLoading && !error && sessions?.length === 0 && (
-          <div className="text-center py-20">
+          <div className="text-center py-20" data-ocid="sessions.empty_state">
             <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center">
               <MessageSquare className="w-10 h-10 text-brand/60" />
             </div>
@@ -270,6 +332,7 @@ export default function SessionsPage() {
               type="button"
               onClick={() => navigate({ to: "/sessions/new" })}
               className="btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-sm"
+              data-ocid="sessions.create_first.button"
             >
               <Plus className="w-4 h-4" />
               Create First Session
@@ -277,34 +340,49 @@ export default function SessionsPage() {
           </div>
         )}
 
-        {!isLoading && !error && sessions && sessions.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sessions.map((session) => (
-              <SessionCard
-                key={session.id}
-                session={session}
-                onOpen={() =>
-                  navigate({
-                    to: "/sessions/$sessionId",
-                    params: { sessionId: session.id },
-                  })
-                }
-                onDelete={() => handleDelete(session.id)}
-                isDeleting={deletingId === session.id}
-              />
-            ))}
-            <button
-              type="button"
-              onClick={() => navigate({ to: "/sessions/new" })}
-              className="glass-card rounded-2xl border border-dashed border-white/20 hover:border-brand/40 transition-all duration-300 p-5 flex flex-col items-center justify-center gap-3 text-muted-foreground hover:text-brand group min-h-[140px]"
+        {!isLoading &&
+          !error &&
+          filteredSessions &&
+          sessions &&
+          sessions.length > 0 &&
+          (filteredSessions.length === 0 ? (
+            <div
+              className="text-center py-16"
+              data-ocid="sessions.search.empty_state"
             >
-              <div className="w-10 h-10 rounded-xl border border-dashed border-current flex items-center justify-center group-hover:bg-brand/10 transition-colors">
-                <Plus className="w-5 h-5" />
-              </div>
-              <span className="text-sm font-medium">New Session</span>
-            </button>
-          </div>
-        )}
+              <p className="text-muted-foreground text-sm">
+                No sessions found matching &ldquo;{searchQuery}&rdquo;
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredSessions.map((session) => (
+                <SessionCard
+                  key={session.id}
+                  session={session}
+                  onOpen={() =>
+                    navigate({
+                      to: "/sessions/$sessionId",
+                      params: { sessionId: session.id },
+                    })
+                  }
+                  onDelete={() => handleDelete(session.id)}
+                  isDeleting={deletingId === session.id}
+                />
+              ))}
+              <button
+                type="button"
+                onClick={() => navigate({ to: "/sessions/new" })}
+                className="glass-card rounded-2xl border border-dashed border-white/20 hover:border-brand/40 transition-all duration-300 p-5 flex flex-col items-center justify-center gap-3 text-muted-foreground hover:text-brand group min-h-[140px]"
+                data-ocid="sessions.new_session_card.button"
+              >
+                <div className="w-10 h-10 rounded-xl border border-dashed border-current flex items-center justify-center group-hover:bg-brand/10 transition-colors">
+                  <Plus className="w-5 h-5" />
+                </div>
+                <span className="text-sm font-medium">New Session</span>
+              </button>
+            </div>
+          ))}
       </main>
 
       <footer className="border-t border-white/5 py-6">

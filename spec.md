@@ -1,35 +1,48 @@
-# Noventra.Ai — Pro Features: Realistic Image Generator, Clone Avatar Creator, Automatic Sound Director
+# Noventra.Ai — Full Rebuild (v38)
 
 ## Current State
-Noventra.Ai is a full-stack AI coding agent platform with:
-- Session-based chat UI (ChatPage, SessionsPage, NewSessionPage)
-- LLM service (llmService.ts) that calls an Emergent backend
-- Sound library, icon builder, morning tone, gesture pad features
-- Live HTML/CSS/JS preview in iframe
-- Authorization + blob-storage backend on ICP
-- Dark "Blade Runner" aesthetic, theme switcher
+The app is a React + Motoko ICP app where users log in via Internet Identity, create AI coding sessions, and generate self-contained HTML/CSS/JS apps via OpenRouter API. The core stack works but has UX issues:
+- ActorGuard blocks app for 2+ minutes with "system not ready" message
+- Startup spinner is anxiety-inducing; no timeout recovery
+- Chat/preview layout lacks polish
+- Model is hardcoded to gemini-2.0-flash-001; users can't switch models
+- Sound in generated previews unreliable
+- No theme switcher
+- Home page is minimal; no visual wow factor
+- Sessions page lacks sorting/search
 
 ## Requested Changes (Diff)
 
 ### Add
-- **Realistic Image Generator page** (`/image-gen`): A dedicated full-page studio where users describe an image in natural language. The UI renders a prompt input with style presets (photorealistic, cinematic, oil painting, anime, 3D render, etc.), aspect ratio selector, and a canvas-based result panel. Since direct image generation APIs are not available, this page generates complete standalone HTML+CSS+JS code (using canvas, SVG gradients, CSS art, procedural generation with noise algorithms) that renders visually rich realistic-looking artwork, which is shown in the live preview iframe. Includes a "Download" button.
-- **Clone Avatar Creator page** (`/avatar-creator`): An interactive 3D avatar builder where users can customize a humanoid figure (skin tone, hair color/style, facial features, clothing, accessories). Built with Three.js rendered inline via a canvas element. Users can orbit/zoom the avatar. Includes export-as-image button (canvas.toDataURL). The avatar is built from Three.js geometry (sphere head, box torso, cylinder limbs) with MeshPhongMaterial for realistic shading. Users can tweak all parameters via sliders/pickers in a side panel.
-- **Automatic Sound Director page** (`/sound-director`): An intelligent sound direction studio. Users describe a "scene" (e.g. "tense thriller moment", "happy morning jingle", "alien landscape ambience"). The app auto-generates a layered Web Audio API composition: background drone, melodic layer, rhythm layer, SFX layer — all synthesized in-browser using OscillatorNode, BiquadFilterNode, ConvolverNode, DynamicsCompressorNode. Shows a real-time spectrum analyzer (canvas FFT). Includes Play/Stop, BPM control, key selector, mood presets, and Download as WAV (via AudioBuffer + Blob).
-- Navigation links in header for all three new pages
-- New session project types: "Image Generation", "Avatar Creation", "Sound Direction"
+- Animated particle/gradient hero on HomePage
+- Model selector in chat header (allow user to pick OpenRouter models: gemini-2.0-flash, claude-sonnet-4-5, gpt-4o-mini, deepseek-chat)
+- Theme color switcher (indigo/cyan default, red/orange option, emerald/teal option)
+- Download button for generated HTML in preview panel
+- Full-screen preview toggle button
+- Better empty state in chat with quick-start prompts
+- Session search/filter on SessionsPage
+- Sound sandbox improvements: inject AudioContext resume script into LivePreview iframe
 
 ### Modify
-- `App.tsx`: Add routes for `/image-gen`, `/avatar-creator`, `/sound-director`; add nav links in header
-- `NewSessionPage.tsx`: Add new project type cards for the three new features
-- `llmService.ts`: Add system prompt instructions for image gen (canvas/SVG art code), avatar (Three.js humanoid), sound direction (Web Audio layered composition)
+- ActorGuard: reduce timeout to 5s, show "retry" much faster; improve copy
+- HomePage: animated background (CSS particles/gradient animation), bold hero, visual project type grid
+- ChatPage: add model selector dropdown in toolbar, add download button, better empty states with quick-start suggestions
+- llmService.ts: make model configurable from localStorage; support multiple models
+- LivePreview: inject AudioContext auto-resume shim into iframe srcdoc
+- NewSessionPage: add more project type options (sound, 4d, avatar, sounddirection)
+- App.tsx: add theme switcher in header
 
 ### Remove
-- Nothing removed
+- Test alarm button from chat header (clutter)
+- Home.tsx (duplicate/unused file)
 
 ## Implementation Plan
-1. Create `ImageGenPage.tsx` — prompt input, style presets, aspect ratio, live preview iframe of generated canvas/SVG code
-2. Create `AvatarCreatorPage.tsx` — Three.js avatar builder with customization panel and orbit controls inline
-3. Create `SoundDirectorPage.tsx` — Web Audio scene composer with spectrum visualizer, mood presets, layered synthesis, WAV export
-4. Update `App.tsx` with new routes and nav links
-5. Update `NewSessionPage.tsx` with new project type cards
-6. Update `llmService.ts` system prompt with templates for all three new capabilities
+1. Update llmService.ts to support model selection from localStorage
+2. Improve ActorGuard (faster timeout, better messaging)
+3. Rebuild HomePage with animated hero and visual project grid
+4. Update ChatPage with model selector, download button, quick-start prompts, full-screen preview
+5. Update NewSessionPage with all project types
+6. Improve LivePreview with AudioContext shim injection
+7. Update SessionsPage with search/filter
+8. Add theme switcher to App.tsx header
+9. Add CSS theme variables for color themes

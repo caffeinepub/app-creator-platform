@@ -213,3 +213,13 @@
 .animate-slide-up {
   animation: slide-up 0.4s ease forwards;
 }
+
+/* Theme overrides */
+[data-theme="red"] {
+  --brand: oklch(0.65 0.22 25);
+  --brand-foreground: oklch(0.98 0.01 25);
+}
+[data-theme="emerald"] {
+  --brand: oklch(0.72 0.18 160);
+  --brand-foreground: oklch(0.98 0.01 160);
+}

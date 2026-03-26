@@ -17,6 +17,23 @@ export function hasApiKey(): boolean {
   const key = getStoredApiKey();
   return key.length > 10;
 }
+const MODEL_STORAGE_KEY = "noventra_model";
+const SUPPORTED_MODELS = [
+  { id: "google/gemini-2.0-flash-001", label: "Gemini 2.0 Flash" },
+  { id: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5" },
+  { id: "openai/gpt-4o-mini", label: "GPT-4o Mini" },
+  { id: "deepseek/deepseek-chat", label: "DeepSeek Chat" },
+] as const;
+
+export function getStoredModel(): string {
+  return (
+    localStorage.getItem(MODEL_STORAGE_KEY) || "google/gemini-2.0-flash-001"
+  );
+}
+export function setStoredModel(model: string): void {
+  localStorage.setItem(MODEL_STORAGE_KEY, model);
+}
+export { SUPPORTED_MODELS };
 
 export interface LLMError {
   message: string;
@@ -653,7 +670,7 @@ REMEMBER: You are Noventra AI — the most capable browser-based creative builde
         "X-Title": "Noventra.ai",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.0-flash-001",
+        model: getStoredModel(),
         messages: requestMessages,
         max_tokens: 24000,
         temperature: 0.85,

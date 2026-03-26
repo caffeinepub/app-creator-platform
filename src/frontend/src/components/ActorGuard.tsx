@@ -31,7 +31,7 @@ export default function ActorGuard({
     const interval = setInterval(() => {
       setElapsedSeconds((prev) => {
         const next = prev + 1;
-        if (next >= 8) setTimedOut(true);
+        if (next >= 5) setTimedOut(true);
         return next;
       });
     }, 1000);
@@ -76,11 +76,11 @@ export default function ActorGuard({
             </div>
             <div className="space-y-1">
               <p className="text-foreground font-medium">
-                Taking longer than expected
+                Connection taking too long
               </p>
               <p className="text-muted-foreground text-sm">
-                The backend is taking too long to respond. This may be a
-                temporary issue — please try again.
+                The backend is taking longer than expected. This usually
+                resolves with a retry.
               </p>
             </div>
             <button
@@ -101,7 +101,7 @@ export default function ActorGuard({
               <p className="text-foreground/80 text-sm font-medium transition-all duration-500">
                 {STATUS_MESSAGES[statusIndex]}
               </p>
-              {elapsedSeconds >= 4 && (
+              {elapsedSeconds >= 3 && (
                 <p className="text-muted-foreground text-xs animate-fade-in">
                   Still connecting… ({elapsedSeconds}s)
                 </p>

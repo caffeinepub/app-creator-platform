@@ -2,8 +2,8 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import {
   AlertTriangle,
   ArrowLeft,
-  Bell,
   Code2,
+  Download,
   Eye,
   Key,
   Loader2,
@@ -26,10 +26,21 @@ import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useAddMessage, useGetSession } from "../hooks/useQueries";
 import {
   type LLMError,
+  SUPPORTED_MODELS,
   extractHtmlFromResponse,
   generateAIResponse,
+  getStoredModel,
   hasApiKey,
+  setStoredModel,
 } from "../services/llmService";
+
+// ─── Quick-start chips ────────────────────────────────────────────────────────
+const QUICK_STARTS = [
+  "\uD83C\uDF0C Create a cinematic 3D space scene with nebula and stars",
+  "\uD83C\uDFB5 Build a music synthesizer with spectrum visualizer",
+  "\uD83C\uDFAE Make a retro space shooter game with particles",
+  "\uD83C\uDFD9\uFE0F Design a dark cyberpunk dashboard with charts",
+];
 
 // ─── Alarm state type ─────────────────────────────────────────────────────────
 interface ActiveAlarm {
@@ -100,7 +111,7 @@ function ApiKeyModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ─── Alarm detector: scans AI-generated HTML for alarm triggers ───────────────
+// ─── Alarm detector ───────────────────────────────────────────────────────────
 function detectAlarmInHtml(html: string): string | null {
   if (!html) return null;
   const alarmPatterns = [
@@ -135,6 +146,7 @@ export default function ChatPage() {
   const [lastUserMessage, setLastUserMessage] = useState("");
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [showApiKeyBanner, setShowApiKeyBanner] = useState(!hasApiKey());
+  const [selectedModel, setSelectedModel] = useState(getStoredModel);
 
   // Alarm state
   const [activeAlarm, setActiveAlarm] = useState<ActiveAlarm | null>(null);
@@ -145,22 +157,21 @@ export default function ChatPage() {
 
   // Suppress unused variable warning — identity used for auth context
   void identity;
+  void showAudioPrompt;
 
   // Scroll to bottom on new messages
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional: runs only on mount
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [session?.messages, isGenerating]);
 
-  // Extract latest HTML from session messages on load.
-  // Only set lastHtml if the stored message content actually contains HTML.
+  // Extract latest HTML from session messages on load
   useEffect(() => {
     if (!session?.messages) return;
     const assistantMessages = session.messages.filter(
       (m) => m.role === "assistant",
     );
     if (assistantMessages.length > 0) {
-      // Walk backwards to find the most recent message that contains HTML
       for (let i = assistantMessages.length - 1; i >= 0; i--) {
         const extracted = extractHtmlFromResponse(assistantMessages[i].content);
         if (extracted) {
@@ -172,7 +183,7 @@ export default function ChatPage() {
   }, [session?.messages]);
 
   // Auto-resize textarea
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional: runs only on message load
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -180,7 +191,7 @@ export default function ChatPage() {
     }
   }, [input]);
 
-  // Listen for alarm messages from the iframe via postMessage
+  // Listen for alarm messages from the iframe
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (!event.data || typeof event.data !== "object") return;
@@ -193,6 +204,17 @@ export default function ChatPage() {
     return () => window.removeEventListener("message", handleMessage);
   }, []);
 
+  const handleDownload = useCallback(() => {
+    if (!lastHtml) return;
+    const blob = new Blob([lastHtml], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "noventra-app.html";
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [lastHtml]);
+
   const sendMessage = useCallback(
     async (messageText: string) => {
       if (!messageText.trim() || isGenerating || !session) return;
@@ -202,7 +224,6 @@ export default function ChatPage() {
       setApiError(null);
       setInput("");
 
-      // Save user message to backend
       try {
         await addMessage.mutateAsync({
           sessionId,
@@ -216,7 +237,6 @@ export default function ChatPage() {
       setIsGenerating(true);
 
       try {
-        // Build conversation history
         const history = (session.messages || []).map((m: Message) => ({
           role: m.role,
           content: m.content,
@@ -229,26 +249,21 @@ export default function ChatPage() {
           session.name,
         );
 
-        // Save the raw AI response as the assistant message (for chat display)
         await addMessage.mutateAsync({
           sessionId,
           role: "assistant",
           content: aiResponse.rawContent,
         });
 
-        // Only update the live preview and switch tabs if actual HTML was returned
         if (aiResponse.htmlContent) {
           setLastHtml(aiResponse.htmlContent);
           setActiveTab("preview");
 
-          // Check for alarm triggers in the generated HTML
           const alarmMsg = detectAlarmInHtml(aiResponse.htmlContent);
           if (alarmMsg) {
             setActiveAlarm({ id: Date.now().toString(), message: alarmMsg });
           }
         }
-        // If no HTML, the chat message is already saved — the user sees the text response
-        // and the previous preview (if any) remains unchanged.
       } catch (err: unknown) {
         const llmErr = err as LLMError;
         setApiError({
@@ -275,14 +290,6 @@ export default function ChatPage() {
       e.preventDefault();
       sendMessage(input);
     }
-  };
-
-  // Test alarm button handler (for development/demo)
-  const handleTestAlarm = () => {
-    setActiveAlarm({
-      id: Date.now().toString(),
-      message: "Test alarm — your scheduled reminder is active!",
-    });
   };
 
   // ── Loading state ──
@@ -340,6 +347,7 @@ export default function ChatPage() {
             type="button"
             onClick={() => navigate({ to: "/sessions" })}
             className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all"
+            data-ocid="chat.back.button"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
@@ -366,15 +374,23 @@ export default function ChatPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Test alarm button */}
-            <button
-              type="button"
-              onClick={handleTestAlarm}
-              title="Test Alarm Sound"
-              className="p-2 rounded-lg text-muted-foreground hover:text-brand hover:bg-brand/10 transition-all"
+            {/* Model selector */}
+            <select
+              value={selectedModel}
+              onChange={(e) => {
+                setStoredModel(e.target.value);
+                setSelectedModel(e.target.value);
+              }}
+              className="text-xs bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:border-brand/40 cursor-pointer"
+              data-ocid="chat.model.select"
             >
-              <Bell className="w-4 h-4" />
-            </button>
+              {SUPPORTED_MODELS.map((m) => (
+                <option key={m.id} value={m.id} className="bg-background">
+                  {m.label}
+                </option>
+              ))}
+            </select>
+
             <button
               type="button"
               onClick={() => setShowApiKeyModal(true)}
@@ -384,6 +400,7 @@ export default function ChatPage() {
                   ? "text-muted-foreground hover:text-foreground hover:bg-white/5"
                   : "text-brand bg-brand/10 hover:bg-brand/20"
               }`}
+              data-ocid="chat.apikey.button"
             >
               <Key className="w-4 h-4" />
             </button>
@@ -416,6 +433,7 @@ export default function ChatPage() {
               type="button"
               onClick={() => setShowApiKeyModal(true)}
               className="text-xs font-medium text-brand bg-brand/20 hover:bg-brand/30 px-3 py-1.5 rounded-lg transition-colors"
+              data-ocid="chat.apikey_banner.button"
             >
               Add Key
             </button>
@@ -437,22 +455,36 @@ export default function ChatPage() {
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-1 min-h-0">
             {messages.length === 0 && !isGenerating && (
-              <div className="flex flex-col items-center justify-center h-full text-center py-12">
+              <div className="flex flex-col items-center justify-center h-full text-center py-8">
                 <div className="w-14 h-14 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center mb-4">
                   <Send className="w-6 h-6 text-brand/60" />
                 </div>
                 <h3 className="text-base font-medium text-foreground/70 mb-2">
                   Start building
                 </h3>
-                <p className="text-sm text-muted-foreground max-w-[220px] leading-relaxed">
+                <p className="text-sm text-muted-foreground max-w-[220px] leading-relaxed mb-6">
                   Describe what you want to create and the AI will build it for
                   you.
                 </p>
+                {/* Quick-start chips */}
+                <div className="flex flex-col gap-2 w-full max-w-xs">
+                  {QUICK_STARTS.map((chip) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      onClick={() => setInput(chip)}
+                      className="text-left text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 hover:border-brand/30 hover:bg-brand/5 text-muted-foreground hover:text-foreground transition-all leading-relaxed"
+                      data-ocid="chat.quickstart.button"
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
             {messages.map((message, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: no stable key for bounce dots
+              // biome-ignore lint/suspicious/noArrayIndexKey: no stable key
               <MessageBubble key={i} message={message} />
             ))}
 
@@ -506,12 +538,14 @@ export default function ChatPage() {
                 disabled={isGenerating}
                 rows={1}
                 className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none disabled:opacity-60 leading-relaxed min-h-[24px]"
+                data-ocid="chat.message.textarea"
               />
               <button
                 type="button"
                 onClick={() => sendMessage(input)}
                 disabled={isGenerating || !input.trim()}
                 className="shrink-0 w-8 h-8 rounded-xl btn-primary flex items-center justify-center disabled:opacity-40 transition-all"
+                data-ocid="chat.send.button"
               >
                 {isGenerating ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -521,7 +555,7 @@ export default function ChatPage() {
               </button>
             </div>
             <p className="text-xs text-muted-foreground/40 mt-2 text-center">
-              Enter to send · Shift+Enter for new line
+              Enter to send &middot; Shift+Enter for new line
             </p>
           </div>
         </div>
@@ -538,6 +572,7 @@ export default function ChatPage() {
                   ? "bg-brand/15 text-brand"
                   : "text-muted-foreground hover:text-foreground hover:bg-white/5"
               }`}
+              data-ocid="chat.preview.tab"
             >
               <Eye className="w-3.5 h-3.5" />
               Preview
@@ -550,10 +585,23 @@ export default function ChatPage() {
                   ? "bg-brand/15 text-brand"
                   : "text-muted-foreground hover:text-foreground hover:bg-white/5"
               }`}
+              data-ocid="chat.code.tab"
             >
               <Code2 className="w-3.5 h-3.5" />
               Code
             </button>
+            {lastHtml && (
+              <button
+                type="button"
+                onClick={handleDownload}
+                title="Download HTML"
+                className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all"
+                data-ocid="chat.download.button"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Download
+              </button>
+            )}
           </div>
 
           {/* Tab content */}
